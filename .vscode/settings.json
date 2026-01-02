@@ -1,0 +1,79 @@
+{
+  // File visibility
+  "files.exclude": {
+    ".claude": false,
+    ".devcontainer": true,
+    ".vscode": true,
+    ".github": true,
+    ".editorconfig": true,
+    ".gitignore": true,
+    ".gitattributes": true,
+    ".releaserc.json": true,
+    ".nv": true,
+    "Dockerfile": true,
+    "docker-compose.yml": true,
+    "justfile": false,
+    "version.txt": true,
+    ".dockerignore": true,
+    "scripts": true,
+    "CONTRIBUTING.md": true,
+    "CHANGELOG.md": true
+  },
+
+  // Search exclusions
+  "search.exclude": {
+    "**/.nv": true,
+    "**/node_modules": true,
+    "**/.git": true
+  },
+
+  // File associations
+  "files.associations": {
+    "*.bats": "shellscript",
+    ".envrc": "shellscript",
+    "*.md": "markdown"
+  },
+
+  // Editor defaults
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "off",
+
+  // Git
+  "git.ignoreLimitWarning": true,
+
+  // Language-specific settings
+  "[markdown]": {
+    "editor.tabSize": 2,
+    "files.trimTrailingWhitespace": false,
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+
+  "[shellscript]": {
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "shellcheck.enable": true,
+  "shellcheck.run": "onType",
+  "shellcheck.customArgs": ["-x"],
+  "shellformat.flag": "-i 4 -ci -sr -bn",
+
+  "[json]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+
+  "[yaml]": {
+    "editor.tabSize": 2
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-azuretools.vscode-docker",
+    "mkhl.direnv",
+    "skellock.just",
+    "nefrob.vscode-just-syntax",
+    "timonwong.shellcheck",
+    "foxundermoon.shell-format"
+  ]
+}

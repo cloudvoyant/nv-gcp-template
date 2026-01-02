@@ -1,0 +1,28 @@
+# Sample Code File for Testing Case Replacements
+
+# Template name in different formats:
+# snake_case
+template_name = nv_lib_template
+
+# kebab-case
+template-name: nv-lib-template
+
+# PascalCase
+class NvLibTemplate:
+    pass
+
+class NvLibTemplateService:
+    pass
+
+# camelCase
+const nvLibTemplate = "template";
+const nvLibTemplateConfig = {};
+
+# flatcase
+nvlibtemplate
+
+# Mixed examples
+def create_nv_lib_template_instance():
+    return NvLibTemplate()
+
+export const nvLibTemplateHelper = new NvLibTemplateService();

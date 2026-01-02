@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache binaries
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin
+          key: ${{ runner.os }}-bin-${{ hashFiles('scripts/setup.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-bin-
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('scripts/setup.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Cache npm global packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('scripts/setup.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Setup environment
+        run: bash scripts/setup.sh --ci
+
+      - name: Run tests
+        run: |
+          source .envrc
+          just test
+
+      - name: Run template tests
+        run: |
+          source .envrc
+          just test-template
+
+      - name: Check formatting
+        run: |
+          source .envrc
+          just format-check
+
+      - name: Run linting
+        run: |
+          source .envrc
+          just lint
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: src/
+          retention-days: 7

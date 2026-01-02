@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+source ./scripts/utils.sh
+
+export PROJECT=__PROJECT_NAME__
+export VERSION=$(get_version)
+
+# Registry Configuration
+# Configure these for your target registry
+export GCP_REGISTRY_PROJECT_ID=your-project-id
+export GCP_REGISTRY_REGION=us-central1
+export GCP_REGISTRY_NAME=your-repository-name
