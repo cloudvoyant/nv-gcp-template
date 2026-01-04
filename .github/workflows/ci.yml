@@ -47,6 +47,8 @@ jobs:
         run: bash scripts/setup.sh --ci
 
       - name: Run tests
+        env:
+          SKIP_TF_TESTS: 1  # Skip Terraform tests in CI (requires GCP credentials)
         run: |
           source .envrc
           just test
