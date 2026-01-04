@@ -103,7 +103,7 @@ teardown() {
     # Adds template tracking (reads from source .envrc)
     run grep "NV_TEMPLATE=" "$DEST_DIR/.envrc"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"nv-lib-template"* ]]
+    [[ "$output" == *"nv-gcp-template"* ]]
 
     run grep "NV_TEMPLATE_VERSION=" "$DEST_DIR/.envrc"
     [ "$status" -eq 0 ]
@@ -165,6 +165,7 @@ teardown() {
     [ ! -d "$DEST_DIR/test" ]
     [ ! -f "$DEST_DIR/CHANGELOG.md" ]
     [ ! -f "$DEST_DIR/RELEASE_NOTES.md" ]
+    [ ! -f "$DEST_DIR/docs/architecture.md" ]
 
     # Template section should be removed from justfile
     run grep "# TEMPLATE" "$DEST_DIR/justfile"
@@ -189,7 +190,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     # Should contain template name
-    run grep "nv-lib-template" "$DEST_DIR/README.md"
+    run grep "nv-gcp-template" "$DEST_DIR/README.md"
     [ "$status" -eq 0 ]
 
     # Should contain platform version
@@ -300,7 +301,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     # Verify template name no longer appears in .envrc
-    run grep -r "export PROJECT=nv-lib-template" "$DEST_DIR" --exclude-dir=.nv
+    run grep -r "export PROJECT=nv-gcp-template" "$DEST_DIR" --exclude-dir=.nv
     [ "$status" -eq 1 ]
 }
 

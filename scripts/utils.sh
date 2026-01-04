@@ -133,7 +133,8 @@ sed_inplace() {
     local file=$2
 
     # Use .bak extension for cross-platform compatibility (works on both macOS and Linux)
-    sed -i.bak "$expression" "$file" && rm -f "${file}.bak"
+    # Set LC_ALL=C to handle binary files and avoid "illegal byte sequence" errors on macOS
+    LC_ALL=C sed -i.bak "$expression" "$file" 2>/dev/null && rm -f "${file}.bak"
 }
 
 # Prompt user for confirmation

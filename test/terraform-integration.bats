@@ -34,7 +34,7 @@ setup() {
 
 teardown() {
     # Skip cleanup if requested
-    if [ -n "$SKIP_CLEANUP" ]; then
+    if [ -n "${SKIP_CLEANUP:-}" ]; then
         echo "# Skipping cleanup (SKIP_CLEANUP=1)" >&3
         echo "# Workspace: $TEST_WORKSPACE" >&3
         echo "# Clean up: just tf-destroy $TEST_WORKSPACE --auto-approve" >&3
@@ -42,7 +42,7 @@ teardown() {
     fi
 
     # Clean up test infrastructure
-    if [ -n "$TEST_WORKSPACE" ]; then
+    if [ -n "${TEST_WORKSPACE:-}" ]; then
         echo "# Cleaning up: $TEST_WORKSPACE" >&3
         just tf-destroy "$TEST_WORKSPACE" --auto-approve 2>&1 | head -20 >&3 || true
     fi
@@ -75,8 +75,10 @@ teardown() {
     just tf-apply "$TEST_WORKSPACE" --auto-approve
 
     # Verify state exists in correct location
+    # Note: GCS backend stores workspaces as <prefix>/<workspace>.tfstate
+    # The "env:/" prefix is Terraform's internal representation, not the GCS path
     BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
-    EXPECTED_PATH="${GCP_PROJECT_ID}/${PROJECT}/env:/${TEST_WORKSPACE}/default.tfstate"
+    EXPECTED_PATH="${GCP_PROJECT_ID}/${PROJECT}/${TEST_WORKSPACE}.tfstate"
     run gsutil ls "gs://${BUCKET_NAME}/${EXPECTED_PATH}"
     [ "$status" -eq 0 ]
 }

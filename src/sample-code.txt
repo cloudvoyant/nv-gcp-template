@@ -2,27 +2,27 @@
 
 # Template name in different formats:
 # snake_case
-template_name = nv_lib_template
+template_name = nv_gcp_template
 
 # kebab-case
-template-name: nv-lib-template
+template-name: nv-gcp-template
 
 # PascalCase
-class NvLibTemplate:
+class NvGcpTemplate:
     pass
 
-class NvLibTemplateService:
+class NvGcpTemplateService:
     pass
 
 # camelCase
-const nvLibTemplate = "template";
-const nvLibTemplateConfig = {};
+const nvGcpTemplate = "template";
+const nvGcpTemplateConfig = {};
 
 # flatcase
-nvlibtemplate
+nvgcptemplate
 
 # Mixed examples
-def create_nv_lib_template_instance():
-    return NvLibTemplate()
+def create_nv_gcp_template_instance():
+    return NvGcpTemplate()
 
-export const nvLibTemplateHelper = new NvLibTemplateService();
+export const nvGcpTemplateHelper = new NvGcpTemplateService();

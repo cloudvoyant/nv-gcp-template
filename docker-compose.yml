@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
-    container_name: nv-lib-template-runner
+    container_name: ${PROJECT:-app}-runner
     volumes:
       - .:/workspace
     working_dir: /workspace
@@ -13,7 +13,7 @@ services:
     stdin_open: true
     tty: true
     networks:
-      - lib-network
+      - app-network
 
   # Test service - for running tests
   tester:
@@ -21,18 +21,18 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
-    container_name: nv-lib-template-tester
+    container_name: ${PROJECT:-app}-tester
     volumes:
       - .:/workspace
     working_dir: /workspace
     command: bash -c "just test"
     networks:
-      - lib-network
+      - app-network
 
 volumes:
   dev-cache:
   test-cache:
 
 networks:
-  lib-network:
+  app-network:
     driver: bridge

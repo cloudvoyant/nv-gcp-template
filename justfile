@@ -187,7 +187,8 @@ tf-init WORKSPACE="":
     set -euo pipefail
     source ./scripts/utils.sh
 
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
     BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
     PREFIX="${GCP_PROJECT_ID}/${PROJECT}"
 
@@ -222,7 +223,8 @@ tf-plan WORKSPACE="": (tf-init WORKSPACE)
     set -euo pipefail
     source ./scripts/utils.sh
 
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
     cd infra/environments
     terraform plan \
@@ -239,7 +241,8 @@ tf-apply WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
     set -euo pipefail
     source ./scripts/utils.sh
 
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
     cd infra/environments
 
@@ -264,7 +267,8 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
     set -euo pipefail
     source ./scripts/utils.sh
 
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
     log_warn "WARNING: This will destroy all infrastructure in workspace: ${WORKSPACE_NAME}"
 
@@ -341,7 +345,8 @@ deploy WORKSPACE="":
     set -euo pipefail
     source ./scripts/utils.sh
 
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
     log_info "Running post-infrastructure deployment for workspace: ${WORKSPACE_NAME}"
     log_info "Add application deployment steps here (kubectl apply, gcloud run deploy, etc.)"
