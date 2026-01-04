@@ -1,121 +1,151 @@
 # {{PROJECT_NAME}}
 
-> A new project scaffolded from {{TEMPLATE_NAME}} (v{{TEMPLATE_VERSION}})
+> GCP infrastructure project scaffolded from {{TEMPLATE_NAME}} (v{{TEMPLATE_VERSION}})
 
 ## Overview
 
-[Add your project description here]
+This project manages GCP infrastructure using Terraform with automated preview environments for feature branches and a structured deployment workflow (dev → stage → prod).
+
+### Features
+
+- **Branch-Based Infrastructure**: Feature/bugfix/hotfix branches automatically create isolated preview environments
+- **Terraform Workspaces**: State isolation for dev, stage, prod, and preview environments
+- **GCS Backend**: Centralized state management with versioning
+- **Automated Deployments**: GitHub Actions workflows for preview creation, dev updates, and manual stage/prod deployments
+- **Approval Gates**: GitHub environments with required approvals for production
 
 ### Project Structure
 
 ```
 .
-├── docs/          # Documentation
-├── scripts/       # Utility scripts and CI/CD hooks
-└── .../           # [ SPECIFY PROJECT SPECIFIC DIRS ]
-└── justfile       # Build recipes
-└── .envrc         # Key env vars and shell config
-└── version.txt    # Project version
-└── ...            # [ SPECIFY PROJECT SPECIFIC FILES ]
+├── infra/                    # Terraform infrastructure
+│   ├── modules/              # Reusable Terraform modules
+│   │   └── storage-bucket/   # Example module
+│   └── environments/         # Root Terraform configuration
+├── docs/                     # Documentation
+├── scripts/                  # Utility scripts and CI/CD hooks
+├── justfile                  # Infrastructure management recipes
+├── .envrc                    # GCP project configuration
+└── version.txt               # Project version
 ```
 
 ## Prerequisites
 
 - bash 3.2+
 - just
-- [List other required tools and dependencies]
+- Terraform 1.5+
+- gcloud CLI
+- GCP project with billing enabled
 
 ## Setup
 
-Run `just setup` or `./scripts/setup.sh` to install remaining dependencies (just, direnv).
+1. **Install dependencies**:
+   ```bash
+   just setup              # Install just and direnv
+   # or: just setup --dev  # Install development tools
+   ```
 
-Optional: `just setup --dev` for development tools, `just setup --template` for template testing.
+2. **Configure GCP projects** in `.envrc`:
+   ```bash
+   # DevOps Project (hosts tfstate, registries)
+   export GCP_DEVOPS_PROJECT_ID=my-devops-project
+   export GCP_DEVOPS_PROJECT_REGION=us-east1
+   export GCP_DEVOPS_REGISTRY_NAME=my-registry
+
+   # Infrastructure Project (where resources are provisioned)
+   export GCP_PROJECT_ID=my-app-project
+   export GCP_REGION=us-east1
+   ```
+
+3. **Authenticate with GCP**:
+   ```bash
+   gcloud auth login
+   gcloud auth application-default login
+   ```
+
+4. **Create Terraform backend** (one-time):
+   ```bash
+   just tf-create-backend
+   ```
 
 ## Quick Start
 
-Type `just` to see all the tasks at your disposal:
+Type `just` to see all available commands:
 
 ```bash
 ❯ just
 Available recipes:
-    [dev]
-    load                 # Load environment
-    install              # Install dependencies
-    build                # Build the project
-    run                  # Run project locally
-    test                 # Run tests
-    clean                # Clean build artifacts
+    [terraform]
+    tf-create-backend  # Create GCS backend bucket
+    tf-init           # Initialize Terraform backend
+    tf-plan           # Run Terraform plan
+    tf-apply          # Apply Terraform changes
+    tf-destroy        # Destroy infrastructure
+
+    [ci]
+    docker-push       # Push Docker image to GCR
+    deploy            # Deploy application
 
 [ OUTPUT TRUNCATED ]
 ```
 
-Build run and test with `just`.
+Deploy infrastructure:
 
 ```bash
-❯ just run
-
-❯ just test
-
+just tf-init          # Initialize Terraform
+just tf-plan          # Preview changes
+just tf-apply         # Apply changes
 ```
 
-Just runs the necessary dependencies for a task on it's own!
+## Infrastructure Workflows
 
-## Publishing
+### Preview Environments
 
-Commit using conventional commits (`feat:`, `fix:`, `docs:`). Merge/push to main and CI/CD will run automatically bumping your project version and publishing a package.
+Preview environments are automatically created for feature/bugfix/hotfix branches:
+
+1. **Create a branch** with issue tracker ID:
+   ```bash
+   git checkout -b feature/PROJ-123-add-monitoring
+   ```
+
+2. **Push to GitHub**:
+   ```bash
+   git push origin feature/PROJ-123-add-monitoring
+   ```
+
+3. **GitHub Actions automatically**:
+   - Extracts issue ID (`proj-123`)
+   - Creates Terraform workspace
+   - Provisions infrastructure
+   - Comments on PR with details
+
+4. **When merged/deleted**: Infrastructure is automatically destroyed
+
+### Deployments
+
+**Dev Environment**: Automatically updated on merge to main
+
+**Stage/Prod**: Manual deployment via GitHub Actions:
+1. Go to Actions → Manual Deployment
+2. Select version tag and environment
+3. Approve deployment (if required)
 
 ### Release Process
 
+Use conventional commits for automatic versioning:
+
 1. **Make changes** on a feature branch
 2. **Commit with conventional commits**:
-   - `feat: add new feature` → minor version bump
-   - `fix: resolve bug` → patch version bump
-   - `feat!: breaking change` or `BREAKING CHANGE:` in footer → major version bump
+   - `feat: add cloud run module` → minor version bump
+   - `fix: resolve bucket policy` → patch version bump
+   - `feat!: breaking change` → major version bump
 3. **Push to GitHub** and create a pull request
 4. **Merge to main** - the CI/CD pipeline will:
-   - Run tests
-   - Build artifacts
-   - Generate changelog
-   - Create GitHub release
-   - Publish to registry (if configured)
+   - Create new release with changelog
+   - Build and push Docker image (optional)
+   - Update dev environment infrastructure
 
-### Manual Publishing
-
-To publish manually:
-
-```bash
-# Ensure you're on main branch with clean working directory
-just publish
-```
-
-This will publish a pre-release package version.
-
-### Registry Configuration
-
-Publishing to artifact registries is optional. This project defaults to GCP Artifact Registry but can be configured for npm, PyPI, Docker Hub, etc.
-
-Configure in `.envrc`:
-
-- **GCP Artifact Registry** (default): Set `GCP_REGISTRY_PROJECT_ID`, `GCP_REGISTRY_REGION`, `GCP_REGISTRY_NAME`
-- **Other registries**: Update the `publish` recipe in `justfile` and add registry-specific variables to `.envrc`
-
-Examples:
-
-```just
-# npm
-publish: test build-prod
-    npm publish
-
-# PyPI
-publish: test build-prod
-    twine upload dist/*
-
-# Docker
-publish: test build-prod
-    docker push myimage:{{VERSION}}
-```
-
-See the [{{TEMPLATE_NAME}} User Guide](https://github.com/your-org/{{TEMPLATE_NAME}}/blob/main/docs/user-guide.md) for detailed configuration instructions.
+See the [{{TEMPLATE_NAME}} User Guide](https://github.com/your-org/{{TEMPLATE_NAME}}/blob/main/docs/user-guide.md) for detailed workflow instructions.
 
 ## Documentation
 
@@ -126,11 +156,11 @@ To learn more about using this template, read the docs:
 
 ## References
 
+- [Terraform Documentation](https://www.terraform.io/docs)
+- [GCP Provider for Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
 - [just command runner](https://github.com/casey/just)
 - [direnv environment management](https://direnv.net/)
 - [semantic-release](https://semantic-release.gitbook.io/)
-- [bats-core bash testing](https://bats-core.readthedocs.io/)
-- [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions](https://docs.github.com/en/actions)
-- [GCP Artifact Registry](https://cloud.google.com/artifact-registry/docs)
+- [GCP Cloud Storage Backend](https://developer.hashicorp.com/terraform/language/backend/gcs)

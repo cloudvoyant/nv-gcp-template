@@ -218,3 +218,64 @@ get_next_version() {
     echo "$next_version"
     return 0
 }
+
+# TERRAFORM UTILITIES ----------------------------------------------------------
+
+# Extract issue ID from branch name (e.g., feature/PROJ-12345-description -> proj-12345)
+# Supports variable-length alphanumeric issue IDs from external trackers
+# Examples: JIRA-1, LIN-456, PROJ-12345, TICKET-999, etc.
+# Returns "dev" if no issue ID found
+extract_issue_id() {
+    local branch_name="${1:-$(git rev-parse --abbrev-ref HEAD)}"
+
+    # Match patterns: feature/[LETTERS]-[DIGITS]-*, bugfix/[LETTERS]-[DIGITS]-*, hotfix/[LETTERS]-[DIGITS]-*
+    # Issue ID format: one or more letters, hyphen, one or more digits (tracker-agnostic)
+    if [[ "$branch_name" =~ ^(feature|bugfix|hotfix)/([A-Za-z]+-[0-9]+) ]]; then
+        local issue_id="${BASH_REMATCH[2]}"
+        # Convert to lowercase and return
+        echo "${issue_id,,}"
+    else
+        echo "dev"
+    fi
+}
+
+# Infer Terraform workspace name based on current branch or explicit environment
+# Usage: infer_terraform_workspace [environment]
+infer_terraform_workspace() {
+    local env="${1:-}"
+
+    if [ -n "$env" ]; then
+        # Explicit environment provided
+        echo "$env"
+    else
+        # Derive from branch name
+        local branch_name="$(git rev-parse --abbrev-ref HEAD)"
+
+        if [ "$branch_name" = "main" ]; then
+            echo "dev"
+        elif [[ "$branch_name" =~ ^(feature|bugfix|hotfix)/ ]]; then
+            extract_issue_id "$branch_name"
+        else
+            echo "dev"
+        fi
+    fi
+}
+
+# Select or create Terraform workspace
+# Usage: select_terraform_workspace <workspace_name> <terraform_dir>
+select_terraform_workspace() {
+    local workspace_name="$1"
+    local terraform_dir="${2:-.}"
+
+    cd "$terraform_dir"
+
+    log_info "Selecting Terraform workspace: ${workspace_name}"
+
+    # Try to select workspace; if it doesn't exist, create it
+    if ! terraform workspace select "${workspace_name}" 2>/dev/null; then
+        log_info "Creating new workspace: ${workspace_name}"
+        terraform workspace new "${workspace_name}"
+    fi
+
+    log_success "Active workspace: $(terraform workspace show)"
+}

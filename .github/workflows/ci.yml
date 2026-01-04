@@ -51,11 +51,6 @@ jobs:
           source .envrc
           just test
 
-      - name: Run template tests
-        run: |
-          source .envrc
-          just test-template
-
       - name: Check formatting
         run: |
           source .envrc

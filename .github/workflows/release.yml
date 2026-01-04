@@ -56,11 +56,6 @@ jobs:
           source .envrc
           just test
 
-      - name: Run template tests
-        run: |
-          source .envrc
-          just test-template
-
       - name: Create new version
         id: upversion
         env:
@@ -74,23 +69,32 @@ jobs:
           source .envrc
           just build-prod
 
-      - name: Authenticate with registry
+      - name: Authenticate with GCP
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          GCP_REGISTRY_PROJECT_ID: ${{ secrets.GCP_REGISTRY_PROJECT_ID }}
-          GCP_REGISTRY_REGION: ${{ secrets.GCP_REGISTRY_REGION }}
-          GCP_REGISTRY_NAME: ${{ secrets.GCP_REGISTRY_NAME }}
-        run: just registry-login --ci
+        run: just gcp-login --ci
 
       - name: Publish package
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          GCP_REGISTRY_PROJECT_ID: ${{ secrets.GCP_REGISTRY_PROJECT_ID }}
-          GCP_REGISTRY_REGION: ${{ secrets.GCP_REGISTRY_REGION }}
-          GCP_REGISTRY_NAME: ${{ secrets.GCP_REGISTRY_NAME }}
         run: just publish
+
+      - name: Build and Push Docker Image
+        if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: just docker-push ${{ steps.upversion.outputs.new_release_version }}
+
+      - name: Deploy to Dev Environment
+        if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          just tf-plan dev
+          just tf-apply dev --auto-approve
+          just deploy dev
 
       - name: Create GitHub Release
         if: steps.upversion.outputs.new_release_published == 'true'

@@ -392,6 +392,18 @@ JUSTFILE="$DEST_DIR/justfile"
 if [ -f "$JUSTFILE" ]; then
     # Remove everything from "# TEMPLATE" comment to end of file
     sed_inplace '/# TEMPLATE$/,$ {/# TEMPLATE$/d; d;}' "$JUSTFILE"
+
+    # Replace test recipe body with placeholder
+    # Pattern: Find "test: build" line and replace next line with TODO
+    awk '
+    /^test: build$/ {
+        print $0
+        getline
+        print "    @echo -e \"{{WARN}}TODO: Implement test{{NORMAL}}\""
+        next
+    }
+    { print }
+    ' "$JUSTFILE" > "$JUSTFILE.tmp" && mv "$JUSTFILE.tmp" "$JUSTFILE"
 fi
 
 # Remove --template flag from Dockerfile

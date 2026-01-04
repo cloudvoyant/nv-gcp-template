@@ -1,0 +1,52 @@
+name: Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+  delete:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cleanup:
+    name: Destroy Preview Infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Just
+        uses: extractions/setup-just@v2
+
+      - name: Setup Environment
+        run: just setup --ci
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Extract Issue ID
+        id: issue
+        run: |
+          source ./scripts/utils.sh
+          # For PR close, use head branch; for delete, use ref name
+          BRANCH_NAME="${{ github.event.pull_request.head.ref || github.event.ref }}"
+          ISSUE_ID=$(extract_issue_id "${BRANCH_NAME}")
+          echo "issue_id=${ISSUE_ID}" >> $GITHUB_OUTPUT
+          echo "Destroying workspace: ${ISSUE_ID}"
+
+      - name: Terraform Destroy
+        env:
+          WORKSPACE: ${{ steps.issue.outputs.issue_id }}
+        run: just tf-destroy "${WORKSPACE}" --auto-approve

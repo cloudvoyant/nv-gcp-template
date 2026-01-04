@@ -1,0 +1,69 @@
+name: Manual Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to deploy (e.g., 1.2.3)"
+        required: true
+        type: string
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - stage
+          - prod
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+
+      - name: Setup Just
+        uses: extractions/setup-just@v2
+
+      - name: Setup Environment
+        run: just setup --ci
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Terraform Plan
+        env:
+          WORKSPACE: ${{ inputs.environment }}
+        run: just tf-plan "${WORKSPACE}"
+
+      - name: Terraform Apply
+        env:
+          WORKSPACE: ${{ inputs.environment }}
+        run: just tf-apply "${WORKSPACE}" --auto-approve
+
+      - name: Deploy Application
+        env:
+          WORKSPACE: ${{ inputs.environment }}
+        run: just deploy "${WORKSPACE}"
+
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workspace**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY

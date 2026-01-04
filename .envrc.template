@@ -4,8 +4,11 @@ source ./scripts/utils.sh
 export PROJECT=__PROJECT_NAME__
 export VERSION=$(get_version)
 
-# Registry Configuration
-# Configure these for your target registry
-export GCP_REGISTRY_PROJECT_ID=your-project-id
-export GCP_REGISTRY_REGION=us-central1
-export GCP_REGISTRY_NAME=your-repository-name
+# DevOps Project Configuration (for tfstate, artifact registry, container registry)
+export GCP_DEVOPS_PROJECT_ID=PLACEHOLDER_GCP_DEVOPS_PROJECT_ID
+export GCP_DEVOPS_PROJECT_REGION=PLACEHOLDER_GCP_DEVOPS_PROJECT_REGION
+export GCP_DEVOPS_REGISTRY_NAME=PLACEHOLDER_GCP_DEVOPS_REGISTRY_NAME
+
+# Infrastructure Project (where resources will be provisioned)
+export GCP_PROJECT_ID=PLACEHOLDER_GCP_PROJECT_ID
+export GCP_REGION=PLACEHOLDER_GCP_REGION

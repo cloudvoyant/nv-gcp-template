@@ -1,0 +1,3 @@
+- [ ] ensure pipelines are modified during scaffolding
+- [ ] tf plan not being used for realz
+- [ ] setup.sh needs to handle gloud and tf deps as well

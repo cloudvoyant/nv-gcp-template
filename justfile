@@ -7,12 +7,14 @@ set shell   := ["bash", "-c"]
 bash        := require("bash")
 direnv      := require("direnv")
 
-# Environment variables available for all scripts
-export PROJECT                  := `source .envrc && echo $PROJECT`
-export VERSION                  := `source .envrc && echo $VERSION`
-export GCP_REGISTRY_PROJECT_ID  := `source .envrc && echo $GCP_REGISTRY_PROJECT_ID`
-export GCP_REGISTRY_REGION      := `source .envrc && echo $GCP_REGISTRY_REGION`
-export GCP_REGISTRY_NAME        := `source .envrc && echo $GCP_REGISTRY_NAME`
+# Environment variables (loaded from .envrc via direnv)
+export PROJECT := env_var('PROJECT')
+export VERSION := env_var('VERSION')
+export GCP_PROJECT_ID := env_var('GCP_PROJECT_ID')
+export GCP_REGION := env_var('GCP_REGION')
+export GCP_DEVOPS_PROJECT_ID := env_var('GCP_DEVOPS_PROJECT_ID')
+export GCP_DEVOPS_PROJECT_REGION := env_var('GCP_DEVOPS_PROJECT_REGION')
+export GCP_DEVOPS_REGISTRY_NAME := env_var('GCP_DEVOPS_REGISTRY_NAME')
 
 # Color codes for output
 INFO        := '\033[0;34m'
@@ -47,7 +49,7 @@ run: build
 # Run tests
 [group('dev')]
 test: build
-    @echo -e "{{WARN}}TODO: Implement test{{NORMAL}}"
+    @just test-template
 
 # Clean build artifacts
 [group('dev')]
@@ -70,6 +72,22 @@ docker-run:
 [group('docker')]
 docker-test:
     @docker compose run --rm tester
+
+# Build and push Docker image to GCP Container Registry
+[group('ci')]
+docker-push TAG="{{VERSION}}": docker-build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_REGISTRY_NAME}/${PROJECT}"
+
+    log_info "Pushing Docker image to GCP Container Registry..."
+    docker tag "${PROJECT}:latest" "${IMAGE_NAME}:{{TAG}}"
+    docker tag "${PROJECT}:latest" "${IMAGE_NAME}:latest"
+    docker push "${IMAGE_NAME}:{{TAG}}"
+    docker push "${IMAGE_NAME}:latest"
+    log_success "Image pushed: ${IMAGE_NAME}:{{TAG}}"
 
 # ==============================================================================
 # UTILITIES
@@ -122,7 +140,7 @@ upgrade:
 
 # Authenticate with GCP (local: gcloud login, CI: service account)
 [group('utils')]
-registry-login *ARGS:
+gcp-login *ARGS:
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ " {{ARGS}} " =~ " --ci " ]]; then
@@ -131,12 +149,139 @@ registry-login *ARGS:
         echo "$GCP_SA_KEY" > "$KEY_FILE"
         gcloud auth activate-service-account --key-file="$KEY_FILE"
         rm -f "$KEY_FILE"
-        gcloud config set project "$GCP_REGISTRY_PROJECT_ID"
+        gcloud config set project "$GCP_DEVOPS_PROJECT_ID"
     else
         echo -e "{{INFO}}Local mode - interactive GCP login{{NORMAL}}"
         gcloud auth login
-        gcloud config set project "$GCP_REGISTRY_PROJECT_ID"
+        gcloud config set project "$GCP_DEVOPS_PROJECT_ID"
     fi
+
+# ==============================================================================
+# TERRAFORM
+# ==============================================================================
+
+# Create GCS backend bucket for Terraform state (shared across all projects)
+[group('terraform')]
+tf-create-backend:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
+
+    log_info "Checking for shared GCS backend bucket: ${BUCKET_NAME}"
+
+    if gsutil ls -b "gs://${BUCKET_NAME}" > /dev/null 2>&1; then
+        log_success "Backend bucket already exists: ${BUCKET_NAME}"
+    else
+        log_info "Creating shared tfstate bucket in DevOps project..."
+        gsutil mb -p "${GCP_DEVOPS_PROJECT_ID}" -l "${GCP_DEVOPS_PROJECT_REGION}" "gs://${BUCKET_NAME}"
+        gsutil versioning set on "gs://${BUCKET_NAME}"
+        log_success "Backend bucket created: ${BUCKET_NAME}"
+    fi
+
+# Initialize Terraform backend and select workspace
+[group('terraform')]
+tf-init WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+    BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
+    PREFIX="${GCP_PROJECT_ID}/${PROJECT}"
+
+    # Check if backend bucket exists
+    if ! gsutil ls -b "gs://${BUCKET_NAME}" > /dev/null 2>&1; then
+        log_error "Backend bucket does not exist: ${BUCKET_NAME}"
+        log_error "Run 'just tf-create-backend' to create the necessary GCS backend bucket"
+        exit 1
+    fi
+
+    log_info "Initializing Terraform backend..."
+    log_info "Bucket: ${BUCKET_NAME}"
+    log_info "Prefix: ${PREFIX}"
+    log_info "Workspace: ${WORKSPACE_NAME}"
+
+    cd infra/environments
+    terraform init \
+        -backend-config="bucket=${BUCKET_NAME}" \
+        -backend-config="prefix=${PREFIX}" \
+        -reconfigure
+
+    # Select or create workspace
+    select_terraform_workspace "${WORKSPACE_NAME}" "."
+
+    log_success "Terraform initialized for workspace: ${WORKSPACE_NAME}"
+    log_success "State: gs://${BUCKET_NAME}/${PREFIX}/env:/${WORKSPACE_NAME}/default.tfstate"
+
+# Run Terraform plan
+[group('terraform')]
+tf-plan WORKSPACE="": (tf-init WORKSPACE)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+
+    cd infra/environments
+    terraform plan \
+        -var="project=${PROJECT}" \
+        -var="gcp_project_id=${GCP_PROJECT_ID}" \
+        -var="gcp_region=${GCP_REGION}" \
+        -var="environment_name=${WORKSPACE_NAME}" \
+        -out=tfplan
+
+# Apply Terraform changes
+[group('terraform')]
+tf-apply WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+
+    cd infra/environments
+
+    if [ "{{AUTO_APPROVE}}" = "--auto-approve" ]; then
+        terraform apply -auto-approve \
+            -var="project=${PROJECT}" \
+            -var="gcp_project_id=${GCP_PROJECT_ID}" \
+            -var="gcp_region=${GCP_REGION}" \
+            -var="environment_name=${WORKSPACE_NAME}"
+    else
+        terraform apply \
+            -var="project=${PROJECT}" \
+            -var="gcp_project_id=${GCP_PROJECT_ID}" \
+            -var="gcp_region=${GCP_REGION}" \
+            -var="environment_name=${WORKSPACE_NAME}"
+    fi
+
+# Destroy Terraform-managed infrastructure
+[group('terraform')]
+tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+
+    log_warn "WARNING: This will destroy all infrastructure in workspace: ${WORKSPACE_NAME}"
+
+    if [ "{{AUTO_APPROVE}}" != "--auto-approve" ]; then
+        if ! confirm "Are you sure you want to destroy this infrastructure?"; then
+            log_info "Destroy cancelled"
+            exit 0
+        fi
+    fi
+
+    cd infra/environments
+    terraform destroy \
+        -var="project=${PROJECT}" \
+        -var="gcp_project_id=${GCP_PROJECT_ID}" \
+        -var="gcp_region=${GCP_REGION}" \
+        -var="environment_name=${WORKSPACE_NAME}" \
+        $([ "{{AUTO_APPROVE}}" = "--auto-approve" ] && echo "-auto-approve" || echo "")
 
 # ==============================================================================
 # CI/CD
@@ -181,13 +326,26 @@ publish: test build-prod
 
     echo -e "{{INFO}}Publishing package $PROJECT@$VERSION{{NORMAL}}"
     gcloud artifacts generic upload \
-        --project=$GCP_REGISTRY_PROJECT_ID \
-        --location=$GCP_REGISTRY_REGION \
-        --repository=$GCP_REGISTRY_NAME \
+        --project=$GCP_DEVOPS_PROJECT_ID \
+        --location=$GCP_DEVOPS_PROJECT_REGION \
+        --repository=$GCP_DEVOPS_REGISTRY_NAME \
         --package=$PROJECT \
         --version=$VERSION \
         --source=dist/artifact.txt
     echo -e "{{SUCCESS}}Published.{{NORMAL}}"
+
+# Deploy application after infrastructure is provisioned
+[group('ci')]
+deploy WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
+
+    log_info "Running post-infrastructure deployment for workspace: ${WORKSPACE_NAME}"
+    log_info "Add application deployment steps here (kubectl apply, gcloud run deploy, etc.)"
+    # Example: kubectl apply -f k8s/ --context=${WORKSPACE_NAME}
 
 # ==============================================================================
 # TEMPLATE
