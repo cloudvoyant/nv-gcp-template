@@ -1,3 +1,26 @@
+## 1.0.0 (2026-01-07)
+
+### Features
+
+* tf recipes and actions added, docs and testing wip
+
+
+### Bug Fixes
+
+* added gcp auth in ci pipeline
+
+* fixed broken tests, dockerfile and scaffodling issues
+
+* fixing issue with SKIP_TF_TESTS
+
+* setting gcp project in ci now
+
+* setting gcp project in ci now
+
+* setting gcp project in ci now
+
+* setting gcp project in ci now
+
 ## [1.16.0](https://github.com/cloudvoyant/nv-lib-template/compare/v1.15.0...v1.16.0) (2025-11-17)
 
 ### Features
