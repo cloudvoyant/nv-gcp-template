@@ -48,6 +48,9 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v2
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Setup environment
         run: ./scripts/setup.sh --ci
 
