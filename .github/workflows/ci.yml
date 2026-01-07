@@ -46,9 +46,20 @@ jobs:
       - name: Setup environment
         run: bash scripts/setup.sh --ci
 
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Create Terraform backend bucket
+        run: |
+          source .envrc
+          just tf-create-backend
+
       - name: Run tests
-        env:
-          SKIP_TF_TESTS: 1  # Skip Terraform tests in CI (requires GCP credentials)
         run: |
           source .envrc
           just test
