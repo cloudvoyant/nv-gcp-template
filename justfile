@@ -7,14 +7,14 @@ set shell   := ["bash", "-c"]
 bash        := require("bash")
 direnv      := require("direnv")
 
-# Environment variables (loaded from .envrc via direnv)
-export PROJECT := env_var('PROJECT')
-export VERSION := env_var('VERSION')
-export GCP_PROJECT_ID := env_var('GCP_PROJECT_ID')
-export GCP_REGION := env_var('GCP_REGION')
-export GCP_DEVOPS_PROJECT_ID := env_var('GCP_DEVOPS_PROJECT_ID')
-export GCP_DEVOPS_PROJECT_REGION := env_var('GCP_DEVOPS_PROJECT_REGION')
-export GCP_DEVOPS_REGISTRY_NAME := env_var('GCP_DEVOPS_REGISTRY_NAME')
+# Environment variables (auto-sourced from .envrc)
+export PROJECT                  := `source .envrc && echo $PROJECT`
+export VERSION                  := `source .envrc && echo $VERSION`
+export GCP_PROJECT_ID           := `source .envrc && echo $GCP_PROJECT_ID`
+export GCP_REGION               := `source .envrc && echo $GCP_REGION`
+export GCP_DEVOPS_PROJECT_ID    := `source .envrc && echo $GCP_DEVOPS_PROJECT_ID`
+export GCP_DEVOPS_PROJECT_REGION := `source .envrc && echo $GCP_DEVOPS_PROJECT_REGION`
+export GCP_DEVOPS_REGISTRY_NAME := `source .envrc && echo $GCP_DEVOPS_REGISTRY_NAME`
 
 # Color codes for output
 INFO        := '\033[0;34m'

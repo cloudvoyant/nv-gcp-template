@@ -64,24 +64,16 @@ jobs:
           echo "Active project: $(gcloud config get-value project)"
 
       - name: Create Terraform backend bucket
-        run: |
-          source .envrc
-          just tf-create-backend
+        run: just tf-create-backend
 
       - name: Run tests
-        run: |
-          source .envrc
-          just test
+        run: just test
 
       - name: Check formatting
-        run: |
-          source .envrc
-          just format-check
+        run: just format-check
 
       - name: Run linting
-        run: |
-          source .envrc
-          just lint
+        run: just lint
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

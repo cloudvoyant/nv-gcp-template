@@ -69,14 +69,10 @@ jobs:
           echo "Active project: $(gcloud config get-value project)"
 
       - name: Create Terraform backend bucket
-        run: |
-          source .envrc
-          just tf-create-backend
+        run: just tf-create-backend
 
       - name: Run tests
-        run: |
-          source .envrc
-          just test
+        run: just test
 
       - name: Create new version
         id: upversion
@@ -87,9 +83,7 @@ jobs:
 
       - name: Build production artifacts
         if: steps.upversion.outputs.new_release_published == 'true'
-        run: |
-          source .envrc
-          just build-prod
+        run: just build-prod
 
       - name: Publish package
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
