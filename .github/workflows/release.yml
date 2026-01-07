@@ -51,6 +51,25 @@ jobs:
       - name: Setup environment
         run: ./scripts/setup.sh --ci
 
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set GCP project
+        run: |
+          source .envrc
+          gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
+          echo "Active project: $(gcloud config get-value project)"
+
+      - name: Create Terraform backend bucket
+        run: |
+          source .envrc
+          just tf-create-backend
+
       - name: Run tests
         run: |
           source .envrc
@@ -68,12 +87,6 @@ jobs:
         run: |
           source .envrc
           just build-prod
-
-      - name: Authenticate with GCP
-        if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: just gcp-login --ci
 
       - name: Publish package
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''

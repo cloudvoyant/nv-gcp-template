@@ -35,6 +35,12 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Set GCP project
+        run: |
+          source .envrc
+          gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
+          echo "Active project: $(gcloud config get-value project)"
+
       - name: Extract Issue ID
         id: issue
         run: |
