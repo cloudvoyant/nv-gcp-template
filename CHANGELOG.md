@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.0...v1.0.1) (2026-01-07)
+
+### Bug Fixes
+
+* docker compose push fixed
+
 ## 1.0.0 (2026-01-07)
 
 ### Features
