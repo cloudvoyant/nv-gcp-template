@@ -81,10 +81,12 @@ docker-push TAG="{{VERSION}}": docker-build
     source ./scripts/utils.sh
 
     IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_REGISTRY_NAME}/${PROJECT}"
+    LOCAL_IMAGE="${PROJECT}:{{TAG}}"
 
     log_info "Pushing Docker image to GCP Container Registry..."
-    docker tag "${PROJECT}:latest" "${IMAGE_NAME}:{{TAG}}"
-    docker tag "${PROJECT}:latest" "${IMAGE_NAME}:latest"
+    log_info "Local image: ${LOCAL_IMAGE}"
+    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:{{TAG}}"
+    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:latest"
     docker push "${IMAGE_NAME}:{{TAG}}"
     docker push "${IMAGE_NAME}:latest"
     log_success "Image pushed: ${IMAGE_NAME}:{{TAG}}"

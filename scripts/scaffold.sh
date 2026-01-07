@@ -272,7 +272,7 @@ log_success "Backup created"
 log_info "Copying platform files to destination"
 
 # Copy all files from source to destination
-# Exclude: .git, .nv, test/, docs/migrations/, docs/decisions/, docs/architecture.md, CHANGELOG.md, RELEASE_NOTES.md
+# Exclude: .git, .nv, test/, docs/migrations/, docs/decisions/, docs/architecture.md, CHANGELOG.md, RELEASE_NOTES.md, version.txt
 rsync -a \
     --exclude='.git' \
     --exclude='.nv' \
@@ -282,6 +282,7 @@ rsync -a \
     --exclude='docs/architecture.md' \
     --exclude='CHANGELOG.md' \
     --exclude='RELEASE_NOTES.md' \
+    --exclude='version.txt' \
     "$SRC_DIR/" "$DEST_DIR/"
 
 log_success "Platform files copied"

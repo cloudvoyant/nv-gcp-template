@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
+    image: ${PROJECT:-app}:${VERSION:-latest}
     container_name: ${PROJECT:-app}-runner
     volumes:
       - .:/workspace
@@ -21,6 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
+    image: ${PROJECT:-app}:${VERSION:-latest}
     container_name: ${PROJECT:-app}-tester
     volumes:
       - .:/workspace
