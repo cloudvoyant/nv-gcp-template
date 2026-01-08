@@ -83,6 +83,9 @@ docker-push TAG="{{VERSION}}": docker-build
     IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_REGISTRY_NAME}/${PROJECT}"
     LOCAL_IMAGE="${PROJECT}:{{TAG}}"
 
+    log_info "Configuring Docker authentication for Artifact Registry..."
+    gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
+
     log_info "Pushing Docker image to GCP Container Registry..."
     log_info "Local image: ${LOCAL_IMAGE}"
     docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:{{TAG}}"
