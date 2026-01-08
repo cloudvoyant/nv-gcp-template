@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.2...v1.0.3) (2026-01-08)
+
+### Bug Fixes
+
+* adding .envrc config for docker registry for publishing
+
 ## [1.0.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.1...v1.0.2) (2026-01-08)
 
 ### Bug Fixes
