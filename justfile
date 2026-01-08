@@ -15,6 +15,7 @@ export GCP_REGION               := `source .envrc && echo $GCP_REGION`
 export GCP_DEVOPS_PROJECT_ID    := `source .envrc && echo $GCP_DEVOPS_PROJECT_ID`
 export GCP_DEVOPS_PROJECT_REGION := `source .envrc && echo $GCP_DEVOPS_PROJECT_REGION`
 export GCP_DEVOPS_REGISTRY_NAME := `source .envrc && echo $GCP_DEVOPS_REGISTRY_NAME`
+export GCP_DEVOPS_DOCKER_REGISTRY_NAME := `source .envrc && echo $GCP_DEVOPS_DOCKER_REGISTRY_NAME`
 
 # Color codes for output
 INFO        := '\033[0;34m'
@@ -80,7 +81,7 @@ docker-push TAG="{{VERSION}}": docker-build
     set -euo pipefail
     source ./scripts/utils.sh
 
-    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_REGISTRY_NAME}/${PROJECT}"
+    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}"
     LOCAL_IMAGE="${PROJECT}:{{TAG}}"
 
     log_info "Configuring Docker authentication for Artifact Registry..."
