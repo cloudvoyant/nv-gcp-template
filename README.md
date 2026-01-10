@@ -1,9 +1,9 @@
-# nv-lib-template
+# nv-gcp-template
 
-![Version](https://img.shields.io/github/v/release/cloudvoyant/nv-lib-template?label=version)
-![Release](https://github.com/cloudvoyant/nv-lib-template/workflows/Release/badge.svg)
+![Version](https://img.shields.io/github/v/release/cloudvoyant/nv-gcp-template?label=version)
+![Release](https://github.com/cloudvoyant/nv-gcp-template/workflows/Release/badge.svg)
 
-`nv-lib-template` is a language-agnostic template for building projects with automated versioning, testing, and GitHub Action powered CI/CD workflows. It uses GCP Artifact Registry for publishing generic packages by default, but can be easily adapted for npm, PyPI, NuGet, CodeArtifact, etc.
+`nv-gcp-template` is a language-agnostic template for building projects with automated versioning, testing, and GitHub Action powered CI/CD workflows. It uses GCP Artifact Registry for publishing generic packages by default, but can be easily adapted for npm, PyPI, NuGet, CodeArtifact, etc.
 
 ## Features
 
@@ -32,7 +32,7 @@ Scaffold a new project:
 
 ```bash
 # Option 1: Nedavellir CLI (automated)
-nv create your-project-name --platform nv-lib-template
+nv create your-project-name --platform nv-gcp-template
 
 # Option 2: GitHub template + scaffold script
 # Click "Use this template" on GitHub, then:
@@ -69,11 +69,11 @@ Build run and test with `just`. The template will show TODO messages in console 
 
 ```bash
 ❯ just run
-TODO: Implement build for nv-lib-template@1.9.1
+TODO: Implement build for nv-gcp-template@1.9.1
 TODO: Implement run
 
 ❯ just test
-TODO: Implement build for nv-lib-template@1.9.1
+TODO: Implement build for nv-gcp-template@1.9.1
 TODO: Implement test
 ```
 
