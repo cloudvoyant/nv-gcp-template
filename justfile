@@ -186,6 +186,45 @@ tf-create-backend:
         log_success "Backend bucket created: ${BUCKET_NAME}"
     fi
 
+# List all Terraform workspaces
+[group('terraform')]
+tf-list-workspaces:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    log_info "Listing Terraform workspaces..."
+    cd infra/environments
+    terraform workspace list
+
+# Create/select Terraform workspace (auto-infers from branch or accepts explicit workspace)
+[group('terraform')]
+tf-select-workspace WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    if [ -z "$WORKSPACE_NAME" ]; then
+        WORKSPACE_NAME="$(infer_terraform_workspace)"
+        log_info "Auto-detected workspace from branch: ${WORKSPACE_NAME}"
+    else
+        log_info "Using explicit workspace: ${WORKSPACE_NAME}"
+    fi
+
+    cd infra/environments
+
+    # Check if workspace exists
+    if terraform workspace list | grep -q "^[* ]*${WORKSPACE_NAME}$"; then
+        log_info "Selecting existing workspace: ${WORKSPACE_NAME}"
+        terraform workspace select "${WORKSPACE_NAME}"
+    else
+        log_info "Creating new workspace: ${WORKSPACE_NAME}"
+        terraform workspace new "${WORKSPACE_NAME}"
+    fi
+
+    log_success "Active workspace: ${WORKSPACE_NAME}"
+
 # Initialize Terraform backend and select workspace
 [group('terraform')]
 tf-init WORKSPACE="":

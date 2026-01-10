@@ -44,7 +44,14 @@ teardown() {
     # Clean up test infrastructure
     if [ -n "${TEST_WORKSPACE:-}" ]; then
         echo "# Cleaning up: $TEST_WORKSPACE" >&3
-        just tf-destroy "$TEST_WORKSPACE" --auto-approve 2>&1 | head -20 >&3 || true
+        # Run destroy and capture output, but don't fail the test if destroy fails
+        # (infrastructure might not exist for early tests)
+        if ! just tf-destroy "$TEST_WORKSPACE" --auto-approve 2>&1 | tail -10 >&3; then
+            echo "# Warning: tf-destroy failed for $TEST_WORKSPACE" >&3
+            echo "# This is expected if no infrastructure was provisioned" >&3
+        else
+            echo "# Successfully cleaned up $TEST_WORKSPACE" >&3
+        fi
     fi
 }
 
