@@ -51,8 +51,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Setup environment
-        run: ./scripts/setup.sh --ci
+      - name: Setup Environment
+        run: bash scripts/setup.sh --ci
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2

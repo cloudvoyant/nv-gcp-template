@@ -38,7 +38,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Setup Environment
-        run: just setup --ci
+        run: bash scripts/setup.sh --ci
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
