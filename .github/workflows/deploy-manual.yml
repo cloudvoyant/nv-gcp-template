@@ -31,28 +31,13 @@ jobs:
         with:
           ref: v${{ inputs.version }}
 
-      - name: Setup Just
-        uses: extractions/setup-just@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
       - name: Setup Environment
-        run: bash scripts/setup.sh --ci
+        uses: ./.github/actions/setup
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP
+        uses: ./.github/actions/setup-gcp
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Set GCP project
-        run: |
-          source .envrc
-          gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
-          echo "Active project: $(gcloud config get-value project)"
+          gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
       - name: Terraform Plan
         env:
