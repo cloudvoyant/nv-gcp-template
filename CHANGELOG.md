@@ -1,3 +1,35 @@
+## [1.1.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.3...v1.1.0) (2026-01-11)
+
+### Features
+
+* added setup support for tf installation
+
+
+### Bug Fixes
+
+* added commit hash to preview docker tags
+
+* calling setup.sh directly to support direnv installation prior to justfile usage
+
+* fixed docker tagged in ci, added prerelease versions to package publishing
+
+* fixed docker tagged in ci, added prerelease versions to package publishing
+
+* fixed docker tagged in ci, added prerelease versions to package publishing
+
+* fixed docker tagged in ci, added prerelease versions to package publishing
+
+* fixed docker tagged in ci, added prerelease versions to package publishing
+
+* fixed test cleanup for integration tests ensuring tf created buckets are deleted during cleanup
+
+* refactoried ci to use custom actions making pipelines more DRY, combined peview and ci pipelines
+
+
+### Documentation
+
+* updated architecture, design and templates for readability
+
 ## [1.0.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.2...v1.0.3) (2026-01-08)
 
 ### Bug Fixes
