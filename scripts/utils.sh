@@ -203,7 +203,7 @@ get_version() {
 # Get next version from semantic-release (dry-run)
 get_next_version() {
     if ! command -v npx &>/dev/null; then
-        log_warn "npx not found. Falling back to current version from version.txt"
+        log_warn "npx not found. Falling back to current version from version.txt" >&2
         echo "$(get_version)"
         return 0
     fi
@@ -219,7 +219,7 @@ get_next_version() {
 
     # Fallback: semantic-release couldn't determine next version (e.g., on feature branch or no commits)
     # Use current version from version.txt
-    log_warn "Could not determine next version from semantic-release, using current version from version.txt"
+    log_warn "Could not determine next version from semantic-release, using current version from version.txt" >&2
     echo "$(get_version)"
     return 0
 }
