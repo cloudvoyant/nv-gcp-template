@@ -63,8 +63,18 @@ clean:
 # ==============================================================================
 
 [group('docker')]
-docker-build:
-    @COMPOSE_BAKE=true docker compose build
+docker-build TAG="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    IMAGE_VERSION="{{TAG}}"
+    # If TAG is provided, append commit hash for uniqueness
+    if [ -n "$IMAGE_VERSION" ]; then
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
+    else
+        IMAGE_VERSION="${VERSION}"
+    fi
+    VERSION="${IMAGE_VERSION}" COMPOSE_BAKE=true docker compose build
 
 [group('docker')]
 docker-run:
@@ -76,24 +86,28 @@ docker-test:
 
 # Build and push Docker image to GCP Container Registry
 [group('ci')]
-docker-push TAG="{{VERSION}}": docker-build
+docker-push TAG="": (docker-build TAG)
     #!/usr/bin/env bash
     set -euo pipefail
     source ./scripts/utils.sh
 
-    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}"
-    LOCAL_IMAGE="${PROJECT}:{{TAG}}"
+    IMAGE_VERSION="{{TAG}}"
+    # If TAG is provided, append commit hash for uniqueness (must match docker-build)
+    if [ -n "$IMAGE_VERSION" ]; then
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
+    else
+        IMAGE_VERSION="${VERSION}"
+    fi
+    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${IMAGE_VERSION}"
 
     log_info "Configuring Docker authentication for Artifact Registry..."
     gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
 
-    log_info "Pushing Docker image to GCP Container Registry..."
-    log_info "Local image: ${LOCAL_IMAGE}"
-    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:{{TAG}}"
-    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:latest"
-    docker push "${IMAGE_NAME}:{{TAG}}"
-    docker push "${IMAGE_NAME}:latest"
-    log_success "Image pushed: ${IMAGE_NAME}:{{TAG}}"
+    log_info "Pushing Docker image: ${IMAGE_NAME}"
+    VERSION="${IMAGE_VERSION}" docker compose push runner
+
+    log_success "Image pushed: ${IMAGE_NAME}"
 
 # ==============================================================================
 # UTILITIES
@@ -185,6 +199,45 @@ tf-create-backend:
         gsutil versioning set on "gs://${BUCKET_NAME}"
         log_success "Backend bucket created: ${BUCKET_NAME}"
     fi
+
+# List all Terraform workspaces
+[group('terraform')]
+tf-list-workspaces:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    log_info "Listing Terraform workspaces..."
+    cd infra/environments
+    terraform workspace list
+
+# Create/select Terraform workspace (auto-infers from branch or accepts explicit workspace)
+[group('terraform')]
+tf-select-workspace WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    if [ -z "$WORKSPACE_NAME" ]; then
+        WORKSPACE_NAME="$(infer_terraform_workspace)"
+        log_info "Auto-detected workspace from branch: ${WORKSPACE_NAME}"
+    else
+        log_info "Using explicit workspace: ${WORKSPACE_NAME}"
+    fi
+
+    cd infra/environments
+
+    # Check if workspace exists
+    if terraform workspace list | grep -q "^[* ]*${WORKSPACE_NAME}$"; then
+        log_info "Selecting existing workspace: ${WORKSPACE_NAME}"
+        terraform workspace select "${WORKSPACE_NAME}"
+    else
+        log_info "Creating new workspace: ${WORKSPACE_NAME}"
+        terraform workspace new "${WORKSPACE_NAME}"
+    fi
+
+    log_success "Active workspace: ${WORKSPACE_NAME}"
 
 # Initialize Terraform backend and select workspace
 [group('terraform')]
@@ -325,24 +378,43 @@ upversion *ARGS:
 
 # Publish the project
 [group('ci')]
-publish: test build-prod
+publish TAG="":
     #!/usr/bin/env bash
     set -euo pipefail
+    source ./scripts/utils.sh
 
     # Load environment variables
     if [ -f .envrc ]; then
         source .envrc
     fi
 
-    echo -e "{{INFO}}Publishing package $PROJECT@$VERSION{{NORMAL}}"
+    # Construct package version
+    PUBLISH_VERSION="{{TAG}}"
+    if [ -n "$PUBLISH_VERSION" ]; then
+        # Pre-release: use next version with RC tag and commit hash (e.g., 1.2.4-rc.nv-29.abc1234)
+        NEXT_VERSION=$(get_next_version)
+        if [ -z "$NEXT_VERSION" ]; then
+            log_error "Could not determine next version"
+            exit 1
+        fi
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        PUBLISH_VERSION="${NEXT_VERSION}-rc.${PUBLISH_VERSION}.${COMMIT_HASH}"
+        log_info "Publishing pre-release package: ${PROJECT}@${PUBLISH_VERSION}"
+    else
+        # Release: use version from version.txt
+        PUBLISH_VERSION="${VERSION}"
+        log_info "Publishing release package: ${PROJECT}@${PUBLISH_VERSION}"
+    fi
+
     gcloud artifacts generic upload \
         --project=$GCP_DEVOPS_PROJECT_ID \
         --location=$GCP_DEVOPS_PROJECT_REGION \
         --repository=$GCP_DEVOPS_REGISTRY_NAME \
         --package=$PROJECT \
-        --version=$VERSION \
+        --version=$PUBLISH_VERSION \
         --source=dist/artifact.txt
-    echo -e "{{SUCCESS}}Published.{{NORMAL}}"
+
+    log_success "Published: ${PROJECT}@${PUBLISH_VERSION}"
 
 # Deploy application after infrastructure is provisioned
 [group('ci')]

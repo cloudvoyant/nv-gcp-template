@@ -17,6 +17,7 @@ Required dependencies (always installed):
 - bash (shell)
 - just (command runner)
 - direnv (environment management)
+- terraform (infrastructure as code)
 
 Development tools (--dev):
 - docker (containerization)
@@ -81,7 +82,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --template    Install template development tools"
             echo "  -h, --help    Show this help message"
             echo ""
-            echo "Required: bash, just, direnv"
+            echo "Required: bash, just, direnv, terraform"
             echo "Development (--dev): docker, node/npx, gcloud, shellcheck, shfmt, claude, claudevoyant plugin"
             echo "CI (--ci): docker, node/npx, gcloud"
             echo "Template (--template): bats-core"
@@ -269,6 +270,62 @@ install_direnv() {
 
     log_success "direnv installation completed"
     log_info "Please add 'eval \"\$(direnv hook bash)\"' to your ~/.bashrc or shell config"
+}
+
+# Install Terraform based on platform
+install_terraform() {
+    log_info "Installing Terraform"
+
+    case $PLATFORM in
+    Mac)
+        if command_exists brew; then
+            brew tap hashicorp/tap
+            brew install hashicorp/tap/terraform
+        else
+            log_warn "Homebrew not found. Please install Terraform manually from https://www.terraform.io/downloads"
+            return 1
+        fi
+        ;;
+    Linux)
+        # Install from HashiCorp repository
+        if command_exists apt-get; then
+            # Add HashiCorp GPG key
+            if command_exists curl; then
+                curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+                echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+                sudo apt-get update
+                sudo apt-get install -y --no-install-recommends terraform
+            else
+                log_error "curl is required to install Terraform"
+                return 1
+            fi
+        elif command_exists yum; then
+            sudo yum install -y yum-utils
+            sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+            sudo yum install -y terraform
+        elif command_exists apk; then
+            # Alpine uses binary installation
+            log_info "Installing Terraform from binary release"
+            ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+            TF_VERSION=$(curl -s https://checkpoint-api.hashicorp.com/v1/check/terraform | grep -o '"current_version":"[^"]*"' | cut -d'"' -f4)
+            curl -LO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_${ARCH}.zip"
+            sudo unzip -o "terraform_${TF_VERSION}_linux_${ARCH}.zip" -d /usr/local/bin
+            sudo chmod +x /usr/local/bin/terraform
+            rm "terraform_${TF_VERSION}_linux_${ARCH}.zip"
+        elif command_exists pacman; then
+            sudo pacman -S terraform
+        else
+            log_warn "No suitable package manager found. Please install Terraform manually from https://www.terraform.io/downloads"
+            return 1
+        fi
+        ;;
+    *)
+        log_warn "Unsupported platform for automatic Terraform installation. Please install Terraform manually from https://www.terraform.io/downloads"
+        return 1
+        ;;
+    esac
+
+    log_success "Terraform installation completed"
 }
 
 # Install Node.js and npx based on platform
@@ -633,7 +690,7 @@ install_claudevoyant_plugin() {
 # Check and install dependencies
 check_dependencies() {
     log_info "Checking dependencies"
-    log_info "Required: bash, just, direnv"
+    log_info "Required: bash, just, direnv, terraform"
 
     if [ "$INSTALL_DEV" = true ]; then
         log_info "Development tools: docker, node/npx, gcloud, shellcheck, shfmt, claude, claudevoyant plugin (will be installed)"
@@ -707,6 +764,21 @@ check_dependencies() {
             log_success "direnv installed successfully"
         else
             log_error "Failed to install direnv - visit https://direnv.net to install manually and re-run setup"
+            failed_required=1
+        fi
+    fi
+
+    # Check Terraform (REQUIRED)
+    current=$((current + 1))
+    progress_step $current "Checking Terraform (required)"
+    if command_exists terraform; then
+        log_success "Terraform is already installed: $(terraform version | head -n1)"
+    else
+        log_warn "Terraform not found"
+        if install_terraform; then
+            log_success "Terraform installed successfully"
+        else
+            log_error "Failed to install Terraform - visit https://www.terraform.io/downloads to install manually and re-run setup"
             failed_required=1
         fi
     fi

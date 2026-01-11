@@ -1,74 +1,59 @@
 # {{PROJECT_NAME}}
 
-> GCP infrastructure project scaffolded from {{TEMPLATE_NAME}} (v{{TEMPLATE_VERSION}})
+> GCP infrastructure project scaffolded from {{TEMPLATE_NAME}} v{{TEMPLATE_VERSION}}
 
-## Overview
+A GCP infrastructure project using Terraform for multi-environment deployments with automated CI/CD pipelines.
 
-This project manages GCP infrastructure using Terraform with automated preview environments for feature branches and a structured deployment workflow (dev → stage → prod).
+## Features
 
-### Features
+- Automated preview environments for feature/bugfix/hotfix branches
+- Terraform workspace isolation (dev, stage, prod, preview)
+- Shared GCS backend for centralized state management
+- GitHub Actions workflows for automated deployment
+- Docker image builds and publishing to GCP Artifact Registry
+- Package publishing to GCP Artifact Registry
+- Manual deployment workflows with approval gates
+- Semantic versioning with conventional commits
 
-- **Branch-Based Infrastructure**: Feature/bugfix/hotfix branches automatically create isolated preview environments
-- **Terraform Workspaces**: State isolation for dev, stage, prod, and preview environments
-- **GCS Backend**: Centralized state management with versioning
-- **Automated Deployments**: GitHub Actions workflows for preview creation, dev updates, and manual stage/prod deployments
-- **Approval Gates**: GitHub environments with required approvals for production
-
-### Project Structure
-
-```
-.
-├── infra/                    # Terraform infrastructure
-│   ├── modules/              # Reusable Terraform modules
-│   │   └── storage-bucket/   # Example module
-│   └── environments/         # Root Terraform configuration
-├── docs/                     # Documentation
-├── scripts/                  # Utility scripts and CI/CD hooks
-├── justfile                  # Infrastructure management recipes
-├── .envrc                    # GCP project configuration
-└── version.txt               # Project version
-```
-
-## Prerequisites
+## Requirements
 
 - bash 3.2+
-- just
+- just - Command runner
 - Terraform 1.5+
 - gcloud CLI
 - GCP project with billing enabled
 
-## Setup
-
-1. **Install dependencies**:
-   ```bash
-   just setup              # Install just and direnv
-   # or: just setup --dev  # Install development tools
-   ```
-
-2. **Configure GCP projects** in `.envrc`:
-   ```bash
-   # DevOps Project (hosts tfstate, registries)
-   export GCP_DEVOPS_PROJECT_ID=my-devops-project
-   export GCP_DEVOPS_PROJECT_REGION=us-east1
-   export GCP_DEVOPS_REGISTRY_NAME=my-registry
-
-   # Infrastructure Project (where resources are provisioned)
-   export GCP_PROJECT_ID=my-app-project
-   export GCP_REGION=us-east1
-   ```
-
-3. **Authenticate with GCP**:
-   ```bash
-   gcloud auth login
-   gcloud auth application-default login
-   ```
-
-4. **Create Terraform backend** (one-time):
-   ```bash
-   just tf-create-backend
-   ```
-
 ## Quick Start
+
+### Setup
+
+```bash
+# Install dependencies
+just setup --dev
+
+# Configure .envrc with your GCP project details
+vim .envrc
+
+# Allow direnv
+direnv allow
+
+# Authenticate with GCP
+gcloud auth login
+gcloud auth application-default login
+
+# Create Terraform backend (one-time)
+just tf-create-backend
+```
+
+### Deploy Infrastructure
+
+```bash
+just tf-init          # Initialize Terraform
+just tf-plan          # Preview changes
+just tf-apply         # Apply changes
+```
+
+### Available Commands
 
 Type `just` to see all available commands:
 
@@ -77,90 +62,123 @@ Type `just` to see all available commands:
 Available recipes:
     [terraform]
     tf-create-backend  # Create GCS backend bucket
-    tf-init           # Initialize Terraform backend
-    tf-plan           # Run Terraform plan
+    tf-init           # Initialize backend and workspace
+    tf-plan           # Preview infrastructure changes
     tf-apply          # Apply Terraform changes
     tf-destroy        # Destroy infrastructure
 
-    [ci]
-    docker-push       # Push Docker image to GCR
-    deploy            # Deploy application
+    [docker]
+    docker-build      # Build Docker images
+    docker-push       # Push to GCP Artifact Registry
 
-[ OUTPUT TRUNCATED ]
+    [ci]
+    publish           # Publish package
+    deploy            # Deploy application
 ```
 
-Deploy infrastructure:
+## CI/CD Workflows
+
+### Feature Branch Workflow
+
+Push to `feature/*`, `bugfix/*`, or `hotfix/*` branches:
+
+1. CI runs tests, linting, formatting
+2. Builds Docker image tagged with issue ID
+3. Publishes pre-release package
+4. Creates isolated Terraform workspace
+5. Provisions preview infrastructure
+6. Deploys application
+7. Cleans up when PR is merged or branch deleted
+
+### Release Workflow
+
+Push to `main` branch:
+
+1. Analyzes conventional commits for version bump
+2. Updates version.txt and CHANGELOG.md
+3. Creates git tag and GitHub Release
+4. Builds and publishes package and Docker image
+5. Deploys to dev environment
+
+Commit convention:
 
 ```bash
-just tf-init          # Initialize Terraform
-just tf-plan          # Preview changes
-just tf-apply         # Apply changes
+git commit -m "feat: add cloud storage module"     # Minor bump
+git commit -m "fix: resolve auth timeout"          # Patch bump
+git commit -m "docs: update deployment guide"      # Patch bump
+git commit -m "feat!: redesign API"                # Major bump
 ```
 
-## Infrastructure Workflows
+### Manual Deployment
 
-### Preview Environments
+Deploy to stage/prod via GitHub Actions:
 
-Preview environments are automatically created for feature/bugfix/hotfix branches:
-
-1. **Create a branch** with issue tracker ID:
-   ```bash
-   git checkout -b feature/PROJ-123-add-monitoring
-   ```
-
-2. **Push to GitHub**:
-   ```bash
-   git push origin feature/PROJ-123-add-monitoring
-   ```
-
-3. **GitHub Actions automatically**:
-   - Extracts issue ID (`proj-123`)
-   - Creates Terraform workspace
-   - Provisions infrastructure
-   - Comments on PR with details
-
-4. **When merged/deleted**: Infrastructure is automatically destroyed
-
-### Deployments
-
-**Dev Environment**: Automatically updated on merge to main
-
-**Stage/Prod**: Manual deployment via GitHub Actions:
 1. Go to Actions → Manual Deployment
 2. Select version tag and environment
 3. Approve deployment (if required)
 
-### Release Process
+## Project Structure
 
-Use conventional commits for automatic versioning:
+```
+{{PROJECT_NAME}}/
+├── .github/           # GitHub Actions workflows
+│   ├── actions/       # Composite actions
+│   └── workflows/     # CI/CD workflows
+├── infra/             # Terraform infrastructure
+│   ├── modules/       # Terraform modules
+│   └── environments/  # Environment configuration
+├── docs/              # Documentation
+├── scripts/           # Build and setup scripts
+├── src/               # Source code (customize)
+├── test/              # Test files (customize)
+├── .envrc             # Environment variables
+├── Dockerfile         # Container definition
+├── docker-compose.yml # Local development
+├── justfile           # Command definitions
+└── README.md          # Project overview
+```
 
-1. **Make changes** on a feature branch
-2. **Commit with conventional commits**:
-   - `feat: add cloud run module` → minor version bump
-   - `fix: resolve bucket policy` → patch version bump
-   - `feat!: breaking change` → major version bump
-3. **Push to GitHub** and create a pull request
-4. **Merge to main** - the CI/CD pipeline will:
-   - Create new release with changelog
-   - Build and push Docker image (optional)
-   - Update dev environment infrastructure
+## Customization
 
-See the [{{TEMPLATE_NAME}} User Guide](https://github.com/your-org/{{TEMPLATE_NAME}}/blob/main/docs/user-guide.md) for detailed workflow instructions.
+Customize Docker and package publishing for your language:
+
+Update `Dockerfile`:
+
+```dockerfile
+# Python example
+FROM python:3.11-slim as base
+WORKDIR /workspace
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["python", "src/main.py"]
+```
+
+Update `justfile` build-prod recipe:
+
+```just
+# Python example
+build-prod:
+    python -m build
+    cp dist/*.whl dist/artifact.txt
+```
 
 ## Documentation
 
-To learn more about using this template, read the docs:
-
-- [User Guide](docs/user-guide.md) - Complete setup and usage guide
-- [Architecture](docs/architecture.md) - Design and implementation details
+- [User Guide](docs/user-guide.md) - Complete setup and CI/CD workflow guide
+- [Architecture](docs/architecture.md) - System design and Terraform structure
+- [Infrastructure Guide](docs/infrastructure.md) - Infrastructure operations
 
 ## References
 
 - [Terraform Documentation](https://www.terraform.io/docs)
-- [GCP Provider for Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
 - [just command runner](https://github.com/casey/just)
 - [direnv environment management](https://direnv.net/)
 - [semantic-release](https://semantic-release.gitbook.io/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions](https://docs.github.com/en/actions)
-- [GCP Cloud Storage Backend](https://developer.hashicorp.com/terraform/language/backend/gcs)
+- [GCP Artifact Registry](https://cloud.google.com/artifact-registry/docs)
+
+---
+
+Template: {{TEMPLATE_NAME}} v{{TEMPLATE_VERSION}}

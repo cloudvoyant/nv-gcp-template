@@ -203,20 +203,24 @@ get_version() {
 # Get next version from semantic-release (dry-run)
 get_next_version() {
     if ! command -v npx &>/dev/null; then
-        log_error "npx not found. Install Node.js to use semantic-release."
-        return 1
+        log_warn "npx not found. Falling back to current version from version.txt" >&2
+        echo "$(get_version)"
+        return 0
     fi
 
+    # Try to get next version from semantic-release
     local next_version
-    next_version=$(npx --yes semantic-release --dry-run 2>/dev/null | grep "The next release version is" | awk '{print $NF}')
+    next_version=$(npx --yes semantic-release --dry-run --no-ci 2>&1 | grep "The next release version is" | awk '{print $NF}')
 
-    if [[ -z "$next_version" ]]; then
-        log_warn "Could not determine next version from semantic-release"
-        echo "TIP: Ensure you have commits following conventional commit format (feat:, fix:, etc.)" >&2
-        return 1
+    if [[ -n "$next_version" ]]; then
+        echo "$next_version"
+        return 0
     fi
 
-    echo "$next_version"
+    # Fallback: semantic-release couldn't determine next version (e.g., on feature branch or no commits)
+    # Use current version from version.txt
+    log_warn "Could not determine next version from semantic-release, using current version from version.txt" >&2
+    echo "$(get_version)"
     return 0
 }
 

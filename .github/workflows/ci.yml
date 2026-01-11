@@ -8,6 +8,11 @@ on:
     branches-ignore:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -16,52 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache binaries
-        uses: actions/cache@v4
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup GCP
+        uses: ./.github/actions/setup-gcp
         with:
-          path: /usr/local/bin
-          key: ${{ runner.os }}-bin-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-bin-
-
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
-      - name: Cache npm global packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - name: Setup just
-        uses: extractions/setup-just@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Setup environment
-        run: bash scripts/setup.sh --ci
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Set GCP project
-        run: |
-          source .envrc
-          gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
-          echo "Active project: $(gcloud config get-value project)"
+          gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
       - name: Create Terraform backend bucket
         run: just tf-create-backend
@@ -81,3 +47,80 @@ jobs:
           name: build-artifacts
           path: src/
           retention-days: 7
+
+  preview:
+    name: Deploy Preview Infrastructure
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/bugfix/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup GCP
+        uses: ./.github/actions/setup-gcp
+        with:
+          gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Extract Issue ID
+        id: issue
+        run: |
+          source ./scripts/utils.sh
+          ISSUE_ID=$(extract_issue_id "${GITHUB_REF#refs/heads/}")
+          echo "issue_id=${ISSUE_ID}" >> $GITHUB_OUTPUT
+          echo "Preview workspace: ${ISSUE_ID}"
+
+      - name: Build production artifacts
+        if: steps.upversion.outputs.new_release_published == 'true'
+        run: just build-prod
+
+      - name: Publish Pre-release Package
+        run: |
+          just build-prod
+          just publish ${{ steps.issue.outputs.issue_id }}
+
+      - name: Build and Push Docker Image
+        run: just docker-push ${{ steps.issue.outputs.issue_id }}
+
+      - name: Terraform Plan
+        env:
+          WORKSPACE: ${{ steps.issue.outputs.issue_id }}
+        run: just tf-plan "${WORKSPACE}"
+
+      - name: Terraform Apply
+        env:
+          WORKSPACE: ${{ steps.issue.outputs.issue_id }}
+        run: just tf-apply "${WORKSPACE}" --auto-approve
+
+      - name: Deploy Application
+        env:
+          WORKSPACE: ${{ steps.issue.outputs.issue_id }}
+        run: just deploy "${WORKSPACE}"
+
+      - name: Get Terraform Outputs
+        id: outputs
+        env:
+          WORKSPACE: ${{ steps.issue.outputs.issue_id }}
+        run: |
+          cd infra/environments
+          BUCKET_NAME=$(terraform output -raw bucket_name)
+          echo "bucket_name=${BUCKET_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workspace = '${{ steps.issue.outputs.issue_id }}';
+            const bucketName = '${{ steps.outputs.bucket_name }}';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Preview Environment Deployed\n\n**Workspace**: \`${workspace}\`\n**Bucket**: \`${bucketName}\`\n\nInfrastructure updated successfully.`
+            });

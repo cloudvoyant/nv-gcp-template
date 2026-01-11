@@ -2,22 +2,22 @@
   // File visibility
   "files.exclude": {
     ".claude": false,
-    ".devcontainer": false,
-    ".vscode": false,
-    ".github": false,
-    ".editorconfig": false,
-    ".gitignore": false,
-    ".gitattributes": false,
-    ".releaserc.json": false,
-    ".nv": false,
-    "Dockerfile": false,
-    "docker-compose.yml": false,
+    ".devcontainer": true,
+    ".vscode": true,
+    ".github": true,
+    ".editorconfig": true,
+    ".gitignore": true,
+    ".gitattributes": true,
+    ".releaserc.json": true,
+    ".nv": true,
+    "Dockerfile": true,
+    "docker-compose.yml": true,
     "justfile": false,
-    "version.txt": false,
-    ".dockerignore": false,
-    "scripts": false,
-    "CONTRIBUTING.md": false,
-    "CHANGELOG.md": false
+    "version.txt": true,
+    ".dockerignore": true,
+    "scripts": true,
+    "CONTRIBUTING.md": true,
+    "CHANGELOG.md": true
   },
 
   // Search exclusions

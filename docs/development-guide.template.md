@@ -1,37 +1,33 @@
 # Development Guide
 
-> Developer onboarding and workflow guide for {{PROJECT_NAME}}
+> Developer workflow and usage guide for {{PROJECT_NAME}}
 
 ## Getting Started
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- **Git** - Version control
-- **just** - Command runner ([installation](https://github.com/casey/just#installation))
-- **direnv** - Environment management ([installation](https://direnv.net/docs/installation.html))
-- **Docker** - Container runtime (optional, for containerized development)
+- Git - Version control
+- just - Command runner ([installation](https://github.com/casey/just#installation))
+- direnv - Environment management ([installation](https://direnv.net/docs/installation.html))
+- Docker - Container runtime (optional)
+- gcloud CLI - Google Cloud tools
 
 ### Initial Setup
 
-1. **Clone the repository**:
+1. Clone the repository:
    ```bash
    git clone https://github.com/YOUR-ORG/{{PROJECT_NAME}}.git
    cd {{PROJECT_NAME}}
    ```
 
-2. **Run setup script**:
+2. Run setup script:
    ```bash
    bash scripts/setup.sh --dev
    ```
 
-   This installs:
-   - Development tools (docker, gcloud, shellcheck, shfmt)
-   - Node.js and semantic-release
-   - Claude CLI (AI coding assistant)
+   This installs development tools (docker, gcloud, shellcheck, shfmt), Node.js, semantic-release, and optional tools.
 
-3. **Configure environment**:
+3. Configure environment:
    ```bash
    # Allow direnv to load .envrc
    direnv allow
@@ -41,16 +37,78 @@ Before you begin, ensure you have the following installed:
    echo $VERSION
    ```
 
-4. **Verify installation**:
+4. Authenticate with GCP:
    ```bash
-   just --version
-   direnv --version
-   docker --version  # if installed
+   gcloud auth login
+   gcloud auth application-default login
    ```
 
-## Development Workflow
+5. Create Terraform backend (one-time setup):
+   ```bash
+   just tf-create-backend
+   ```
 
-### Commands
+## CI/CD Workflows
+
+The project uses automated CI/CD based on git branching.
+
+### Feature Branch Workflow
+
+Branch naming: `feature/ISSUE-ID-description`, `bugfix/ISSUE-ID-description`, `hotfix/ISSUE-ID-description`
+
+What happens when you push:
+
+1. CI runs tests, linting, formatting checks
+2. On success, preview job automatically:
+   - Builds Docker image tagged with issue ID
+   - Publishes pre-release package
+   - Creates isolated Terraform workspace
+   - Provisions preview infrastructure
+   - Deploys application
+
+When PR is merged or branch deleted:
+- Cleanup workflow destroys all preview infrastructure
+- Removes Terraform workspace
+
+No manual steps required - everything is automated.
+
+### Release Workflow
+
+Trigger: Push to `main` branch
+
+What happens:
+
+1. Runs tests
+2. Analyzes conventional commits to determine version bump
+3. If new version created:
+   - Updates version.txt and CHANGELOG.md
+   - Creates git tag
+   - Builds production artifacts
+   - Publishes package
+   - Builds and pushes Docker image
+   - Deploys to dev environment
+   - Creates GitHub Release
+
+Commit convention:
+
+```bash
+git commit -m "feat: add cloud storage module"     # Minor bump
+git commit -m "fix: resolve auth timeout"          # Patch bump
+git commit -m "docs: update deployment guide"      # Patch bump
+git commit -m "feat!: redesign API"                # Major bump
+```
+
+### Manual Deployment
+
+For stage/prod deployments:
+
+1. Go to repository → Actions → "Manual Deployment"
+2. Click "Run workflow"
+3. Enter version tag (e.g., `1.2.3`) and environment (`stage` or `prod`)
+4. Click "Run workflow"
+5. Approve if required
+
+## Development Commands
 
 Common commands using `just`:
 
@@ -58,118 +116,167 @@ Common commands using `just`:
 # List all available commands
 just
 
-# Build the project
-just build
+# Terraform operations
+just tf-init          # Initialize backend and workspace
+just tf-plan          # Preview infrastructure changes
+just tf-apply         # Apply changes
+just tf-destroy       # Destroy infrastructure
 
-# Run locally
-just run
+# Docker operations
+just docker-build     # Build Docker images
+just docker-push      # Push to GCP Artifact Registry
 
-# Run tests
-just test
-
-# Format code
-just format
-
-# Lint code
-just lint
-
-# Clean build artifacts
-just clean
+# Development
+just build            # Build project
+just run              # Run locally
+just test             # Run tests
+just format           # Format code
+just lint             # Lint code
+just clean            # Clean build artifacts
 ```
+
+## Local Development Workflow
 
 ### Making Changes
 
-1. **Create a feature branch**:
+1. Create a feature branch:
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/PROJ-123-your-feature
    ```
 
-2. **Make your changes**:
-   - Write code
-   - Add tests
-   - Update documentation
+2. Make your changes, add tests, update documentation
 
-3. **Test your changes**:
+3. Test locally:
    ```bash
    just test
    just lint
    just format-check
    ```
 
-4. **Commit using conventional commits**:
+4. Test infrastructure changes:
    ```bash
-   # Feature
+   just tf-plan
+   just tf-apply
+   ```
+
+5. Commit using conventional commits:
+   ```bash
    git commit -m "feat: add new capability"
-
-   # Bug fix
-   git commit -m "fix: resolve issue with X"
-
-   # Documentation
-   git commit -m "docs: update README"
-
-   # Refactoring
-   git commit -m "refactor: restructure component Y"
    ```
 
-5. **Push and create pull request**:
+6. Push and create pull request:
    ```bash
-   git push -u origin feature/your-feature-name
+   git push -u origin feature/PROJ-123-your-feature
    ```
 
-### Pull Request Process
+### Workspace Management
 
-1. **Open PR** on GitHub
-2. **Ensure CI passes**:
-   - All tests pass
-   - Code is formatted
-   - No linting errors
-3. **Request review** from team members
-4. **Address feedback** and push updates
-5. **Merge** when approved
+Terraform workspace is automatically inferred from your git branch:
+- On `main` branch → `dev` workspace
+- On `feature/PROJ-123-*` → `proj-123` workspace
+- On other branches → `dev` workspace (fallback)
+
+Manual workspace operations:
+
+```bash
+# List all workspaces
+just tf-list-workspaces
+
+# Create/select workspace
+just tf-select-workspace dev
+
+# Auto-infer workspace from branch
+just tf-select-workspace
+```
+
+## Customizing for Your Language
+
+### Docker Image
+
+Update `Dockerfile` with your language's build process:
+
+```dockerfile
+# Python example
+FROM python:3.11-slim as base
+WORKDIR /workspace
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["python", "src/main.py"]
+
+# Go example
+FROM golang:1.21 as builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server
+
+FROM alpine:latest
+COPY --from=builder /app/server /server
+CMD ["/server"]
+
+# Node.js example
+FROM node:20-alpine as base
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+CMD ["node", "src/index.js"]
+```
+
+### Package Publishing
+
+Update `build-prod` recipe in `justfile`:
+
+```just
+# Python example
+build-prod:
+    python -m build
+    cp dist/*.whl dist/artifact.txt
+
+# Go example
+build-prod:
+    GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux-amd64
+    echo "myapp-linux-amd64" > dist/artifact.txt
+
+# Node.js example
+build-prod:
+    npm run build
+    npm pack --pack-destination=dist/
+    ls dist/*.tgz > dist/artifact.txt
+```
+
+The `publish` recipe automatically uploads to GCP Artifact Registry:
+- Release builds: `app@1.2.3`
+- Preview builds: `app@1.0.3-rc.proj-123`
+
+Optionally publish to language-specific registries (npm, PyPI, etc.) by modifying the `publish` recipe.
 
 ## Project Structure
 
 ```
 {{PROJECT_NAME}}/
 ├── .github/           # GitHub Actions workflows
+│   ├── actions/       # Composite actions
+│   └── workflows/     # CI/CD workflows
 ├── .claude/           # AI assistant configuration
 ├── docs/              # Documentation
+│   ├── architecture.md
+│   ├── user-guide.md
+│   └── infrastructure.md
+├── infra/             # Terraform infrastructure
+│   ├── modules/       # Terraform modules
+│   └── environments/  # Environment configuration
 ├── scripts/           # Build and setup scripts
-├── src/               # Source code
-├── test/              # Test files
+├── src/               # Source code (customize)
+├── test/              # Test files (customize)
 ├── .envrc             # Environment variables
-├── .envrc.template    # Environment template
 ├── Dockerfile         # Container definition
+├── docker-compose.yml # Local development
 ├── justfile           # Command definitions
 └── README.md          # Project overview
 ```
-
-## Development Environment
-
-### Using Docker
-
-Development container for consistent environment:
-
-```bash
-# Build dev container
-docker compose build dev
-
-# Run in container
-docker compose run --rm dev bash
-
-# Inside container
-just build
-just test
-```
-
-### Using Dev Containers
-
-If using VS Code:
-
-1. Install "Dev Containers" extension
-2. Open project in VS Code
-3. Click "Reopen in Container" when prompted
-4. Develop inside container with all tools pre-installed
 
 ## Testing
 
@@ -178,92 +285,54 @@ If using VS Code:
 ```bash
 # Run all tests
 just test
-
-# Run specific test file (TODO: Adjust based on test framework)
-just test path/to/test_file
-
-# Run with coverage (TODO: Add coverage support)
-just test-coverage
 ```
 
-### Writing Tests
+After scaffolding, implement your own tests:
+1. Create test files in `test/` directory
+2. Update `test` recipe in justfile
+3. Tests run automatically in CI
 
-TODO: Add language-specific testing guidelines
+### Viewing Hidden Files (VS Code)
 
-Example test structure:
-
-```
-test/
-├── unit/         # Unit tests
-├── integration/  # Integration tests
-└── e2e/          # End-to-end tests
-```
-
-### Test Template
-
-For template development:
+Toggle file visibility to focus on code or see full project structure:
 
 ```bash
-# Install template testing tools
-just setup --template
+# Hide infrastructure files
+just hide
 
-# Run template tests
-just test-template
+# Show all files
+just show
 ```
 
-## Code Style
+Limitation: Hidden files won't appear in VS Code search (Cmd+Shift+F) unless you run `just show` first.
 
-### Formatting
+## Versioning
 
-Code should be formatted before committing:
+This project uses semantic versioning (SemVer):
+
+- Major (1.0.0): Breaking changes
+- Minor (0.1.0): New features (backwards compatible)
+- Patch (0.0.1): Bug fixes
+
+Versions are determined automatically by semantic-release based on commit messages.
+
+Check current version:
 
 ```bash
-# Format all files
-just format
-
-# Check formatting without changing files
-just format-check
+just version
 ```
 
-### Linting
+## Pull Request Process
 
-Run linters to catch issues:
+1. Open PR on GitHub
+2. Ensure CI passes (tests, formatting, linting)
+3. Request review from team members
+4. Address feedback and push updates
+5. Merge when approved
 
-```bash
-# Run all linters
-just lint
+## Troubleshooting
 
-# Auto-fix linting issues (if available)
-just lint-fix
-```
-
-### Best Practices
-
-- Write clear, descriptive variable and function names
-- Add comments for complex logic
-- Keep functions small and focused
-- Write tests for new features
-- Update documentation when changing behavior
-
-## Debugging
-
-### Local Debugging
-
-TODO: Add language-specific debugging instructions
-
-### Container Debugging
-
-```bash
-# Run container with interactive shell
-docker compose run --rm dev bash
-
-# Attach to running container
-docker exec -it {{PROJECT_NAME}}-dev bash
-```
-
-### Common Issues
-
-#### Environment not loading
+### Environment not loading
 
 ```bash
 # Check direnv status
@@ -273,7 +342,21 @@ direnv status
 direnv allow
 ```
 
-#### Build failures
+### Terraform state lock
+
+```bash
+# Only use if you're certain no other process is running
+terraform force-unlock <LOCK_ID>
+```
+
+### Docker authentication failed
+
+```bash
+gcloud auth login
+gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
+```
+
+### Build failures
 
 ```bash
 # Clean and rebuild
@@ -281,64 +364,7 @@ just clean
 just build
 ```
 
-## AI-Assisted Development
-
-This project uses Claude Code for AI-assisted development:
-
-```bash
-# Install Claude CLI (if not already installed)
-npm install -g @anthropic-ai/claude-cli
-
-# Verify installation
-claude --version
-```
-
-### Claude Code Commands
-
-Custom commands available in `.claude/commands/`:
-
-```bash
-# List available commands
-ls .claude/commands/
-
-# Use a command (in Claude Code CLI)
-/command-name
-```
-
-## Versioning
-
-This project uses semantic versioning (SemVer):
-
-- **Major** (1.0.0): Breaking changes
-- **Minor** (0.1.0): New features (backwards compatible)
-- **Patch** (0.0.1): Bug fixes
-
-Versions are determined automatically by semantic-release based on commit messages.
-
-### Version Management
-
-```bash
-# Check current version
-just version
-
-# Preview next version (dry-run)
-just next-version
-```
-
 ## Contributing Guidelines
-
-### Code Review
-
-- Be respectful and constructive
-- Explain reasoning behind suggestions
-- Approve when changes look good
-
-### Documentation
-
-- Update docs with code changes
-- Keep README current
-- Document new features
-- Add ADRs for significant decisions
 
 ### Commit Messages
 
@@ -353,7 +379,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 [optional footer]
 ```
 
-**Types**:
+Types:
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -363,27 +389,33 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `test`: Adding/updating tests
 - `chore`: Maintenance tasks
 
+### Code Review
+
+- Be respectful and constructive
+- Explain reasoning behind suggestions
+- Approve when changes look good
+
+### Documentation
+
+- Update docs with code changes
+- Keep README current
+- Document new features
+- Add ADRs for significant decisions
+
 ## Resources
 
 ### Documentation
 
-- [Architecture Guide](./architecture.md)
-- [User Guide](./user-guide.md)
-- [Infrastructure Guide](./infrastructure.md)
-
-### External Resources
-
-TODO: Add links to relevant external resources:
-- Language-specific docs
-- Framework documentation
-- API references
+- [Architecture Guide](./architecture.md) - System design details
+- [User Guide](./user-guide.md) - CI/CD workflow details
+- [Infrastructure Guide](./infrastructure.md) - Terraform operations
 
 ### Getting Help
 
-- **Issues**: File a GitHub issue
-- **Discussions**: Use GitHub Discussions
-- **Chat**: TODO: Add team chat link
+- File an issue in the GitHub repository
+- Review documentation
+- Contact team members
 
 ---
 
-**Template**: {{TEMPLATE_NAME}} v{{TEMPLATE_VERSION}}
+Template: {{TEMPLATE_NAME}} v{{TEMPLATE_VERSION}}

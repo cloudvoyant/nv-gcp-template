@@ -1,0 +1,39 @@
+name: 'Setup Environment'
+description: 'Install dependencies, configure caching, and setup tools'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache binaries
+      uses: actions/cache@v4
+      with:
+        path: /usr/local/bin
+        key: ${{ runner.os }}-bin-${{ hashFiles('scripts/setup.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-bin-
+
+    - name: Cache apt packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ hashFiles('scripts/setup.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
+    - name: Cache npm global packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('scripts/setup.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
+    - name: Setup just
+      uses: extractions/setup-just@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Setup Environment
+      shell: bash
+      run: bash scripts/setup.sh --ci

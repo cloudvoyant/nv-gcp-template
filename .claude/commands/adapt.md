@@ -26,7 +26,7 @@ I'll ask you about:
 I'll create `.claude/plan.md` with phases for:
 
 ```markdown
-# Adaptation Plan: nv-lib-template → <your-project>
+# Adaptation Plan: nv-gcp-template → <your-project>
 
 ## Phase 1: Language Setup
 

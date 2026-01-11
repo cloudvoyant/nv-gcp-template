@@ -1,0 +1,25 @@
+name: 'Setup GCP'
+description: 'Authenticate and configure GCP'
+
+inputs:
+  gcp_sa_key:
+    description: 'GCP Service Account Key'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ inputs.gcp_sa_key }}
+
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Set GCP project
+      shell: bash
+      run: |
+        source .envrc
+        gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
+        echo "Active project: $(gcloud config get-value project)"

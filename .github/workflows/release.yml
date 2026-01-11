@@ -21,52 +21,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache binaries
-        uses: actions/cache@v4
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup GCP
+        uses: ./.github/actions/setup-gcp
         with:
-          path: /usr/local/bin
-          key: ${{ runner.os }}-bin-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-bin-
-
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
-      - name: Cache npm global packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('scripts/setup.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - name: Setup just
-        uses: extractions/setup-just@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Setup environment
-        run: ./scripts/setup.sh --ci
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Set GCP project
-        run: |
-          source .envrc
-          gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
-          echo "Active project: $(gcloud config get-value project)"
+          gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
       - name: Create Terraform backend bucket
         run: just tf-create-backend
@@ -95,7 +56,7 @@ jobs:
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: just docker-push ${{ steps.upversion.outputs.new_release_version }}
+        run: just docker-push
 
       - name: Deploy to Dev Environment
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
