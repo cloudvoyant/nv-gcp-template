@@ -1,8 +1,6 @@
 # {{PROJECT_NAME}}
 
-> GCP infrastructure project scaffolded from {{TEMPLATE_NAME}} v{{TEMPLATE_VERSION}}
-
-A GCP infrastructure project using Terraform for multi-environment deployments with automated CI/CD pipelines.
+> TODO: Add project description
 
 ## Features
 

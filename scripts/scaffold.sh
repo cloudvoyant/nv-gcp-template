@@ -211,13 +211,21 @@ if [ "$NON_INTERACTIVE" = false ]; then
         fi
     done
 
-    # Prompt for GCP registry configuration
-    read -p "Configure GCP Artifact Registry? (y/N): " configure_gcp
+    # Prompt for GCP configuration
+    read -p "Configure GCP settings? (y/N): " configure_gcp
     if [[ "$configure_gcp" =~ ^[Yy]$ ]]; then
-        read -p "GCP Project ID: " gcp_project_id
-        read -p "GCP Region [us-east1]: " gcp_region
-        gcp_region="${gcp_region:-us-east1}"
-        read -p "GCP Repository: " gcp_repository
+        # DevOps project (for tfstate, registries)
+        read -p "GCP DevOps Project ID: " gcp_devops_project_id
+        read -p "GCP DevOps Region [us-east1]: " gcp_devops_region
+        gcp_devops_region="${gcp_devops_region:-us-east1}"
+        read -p "GCP DevOps Artifact Registry Name: " gcp_devops_registry_name
+        read -p "GCP DevOps Docker Registry Name: " gcp_devops_docker_registry_name
+
+        # Infrastructure project (where resources are provisioned)
+        read -p "GCP Infrastructure Project ID: " gcp_infra_project_id
+        read -p "GCP Infrastructure Region [us-east1]: " gcp_infra_region
+        gcp_infra_region="${gcp_infra_region:-us-east1}"
+
         CONFIGURE_GCP=true
     else
         CONFIGURE_GCP=false
@@ -272,7 +280,7 @@ log_success "Backup created"
 log_info "Copying platform files to destination"
 
 # Copy all files from source to destination
-# Exclude: .git, .nv, test/, docs/migrations/, docs/decisions/, docs/architecture.md, CHANGELOG.md, RELEASE_NOTES.md, version.txt
+# Exclude: .git, .nv, test/, docs/migrations/, docs/decisions/, docs/architecture.md, docs/user-guide.md, CHANGELOG.md, RELEASE_NOTES.md, version.txt
 rsync -a \
     --exclude='.git' \
     --exclude='.nv' \
@@ -280,12 +288,36 @@ rsync -a \
     --exclude='docs/migrations/' \
     --exclude='docs/decisions/' \
     --exclude='docs/architecture.md' \
+    --exclude='docs/user-guide.md' \
     --exclude='CHANGELOG.md' \
     --exclude='RELEASE_NOTES.md' \
     --exclude='version.txt' \
     "$SRC_DIR/" "$DEST_DIR/"
 
 log_success "Platform files copied"
+
+# CLEAN UP TEMPLATE-SPECIFIC FILES --------------------------------------------
+log_info "Removing template-specific files"
+
+# Delete files that were excluded from rsync but may exist in destination
+# (important for in-place scaffolding when using GitHub template)
+[ -f "$DEST_DIR/CHANGELOG.md" ] && rm "$DEST_DIR/CHANGELOG.md"
+[ -f "$DEST_DIR/RELEASE_NOTES.md" ] && rm "$DEST_DIR/RELEASE_NOTES.md"
+[ -f "$DEST_DIR/docs/user-guide.md" ] && rm "$DEST_DIR/docs/user-guide.md"
+[ -f "$DEST_DIR/docs/architecture.md" ] && rm "$DEST_DIR/docs/architecture.md"
+
+log_success "Template-specific files removed"
+
+# CLEAN UP TEST DIRECTORY ------------------------------------------------------
+log_info "Cleaning test directory"
+
+# Remove all test files except .gitkeep
+if [ -d "$DEST_DIR/test" ]; then
+    find "$DEST_DIR/test" -type f ! -name '.gitkeep' -delete
+    log_success "Removed template test files"
+else
+    log_info "No test directory found"
+fi
 
 # REPLACE TEMPLATE NAME WITH PROJECT NAME IN ALL VARIANTS ---------------------
 log_info "Replacing template name with project name"
@@ -342,10 +374,13 @@ sed_inplace "s/__PROJECT_NAME__/$PROJECT_NAME/" "$ENVRC_FILE"
 
 # Configure GCP if requested
 if [ "$CONFIGURE_GCP" = true ]; then
-    sed_inplace "s/export GCP_REGISTRY_PROJECT_ID=.*/export GCP_REGISTRY_PROJECT_ID=$gcp_project_id/" "$ENVRC_FILE"
-    sed_inplace "s/export GCP_REGISTRY_REGION=.*/export GCP_REGISTRY_REGION=$gcp_region/" "$ENVRC_FILE"
-    sed_inplace "s/export GCP_REGISTRY_NAME=.*/export GCP_REGISTRY_NAME=$gcp_repository/" "$ENVRC_FILE"
-    log_success "GCP registry configured in .envrc"
+    sed_inplace "s/PLACEHOLDER_GCP_DEVOPS_PROJECT_ID/$gcp_devops_project_id/" "$ENVRC_FILE"
+    sed_inplace "s/PLACEHOLDER_GCP_DEVOPS_PROJECT_REGION/$gcp_devops_region/" "$ENVRC_FILE"
+    sed_inplace "s/PLACEHOLDER_GCP_DEVOPS_REGISTRY_NAME/$gcp_devops_registry_name/" "$ENVRC_FILE"
+    sed_inplace "s/PLACEHOLDER_GCP_DEVOPS_DOCKER_REGISTRY_NAME/$gcp_devops_docker_registry_name/" "$ENVRC_FILE"
+    sed_inplace "s/PLACEHOLDER_GCP_PROJECT_ID/$gcp_infra_project_id/" "$ENVRC_FILE"
+    sed_inplace "s/PLACEHOLDER_GCP_REGION/$gcp_infra_region/" "$ENVRC_FILE"
+    log_success "GCP configuration updated in .envrc"
 fi
 
 # Add template tracking variables after VERSION line
@@ -497,11 +532,19 @@ echo "Project: $PROJECT_NAME"
 echo "Template: $TEMPLATE_NAME v$TEMPLATE_VERSION"
 echo ""
 log_info "Next steps:"
-echo "  1. Review .envrc for project configuration"
-echo "  2. Edit justfile to implement build/test/publish recipes"
-echo "  3. Add your source code to src/"
-echo "  4. Configure GitHub organization secrets (see docs/user-guide.md)"
-echo "  5. Initialize git and commit: git init && git add . && git commit -m 'Initial commit'"
+if [ "$CONFIGURE_GCP" = false ]; then
+    echo "  1. Update .envrc with your GCP project configuration (replace PLACEHOLDER_* values)"
+    echo "  2. Edit justfile to implement build/test/publish recipes"
+    echo "  3. Add your source code to src/"
+    echo "  4. Configure GitHub organization secrets (see .github/workflows/)"
+    echo "  5. Initialize git and commit: git init && git add . && git commit -m 'Initial commit'"
+else
+    echo "  1. Review .envrc for any additional configuration"
+    echo "  2. Edit justfile to implement build/test/publish recipes"
+    echo "  3. Add your source code to src/"
+    echo "  4. Configure GitHub organization secrets (see .github/workflows/)"
+    echo "  5. Initialize git and commit: git init && git add . && git commit -m 'Initial commit'"
+fi
 echo ""
 
 # Mark successful completion (prevents cleanup on exit)

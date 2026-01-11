@@ -431,6 +431,20 @@ deploy WORKSPACE="":
     # Example: kubectl apply -f k8s/ --context=${WORKSPACE_NAME}
 
 # ==============================================================================
+# VS CODE
+# ==============================================================================
+
+# Hide non-essential files in VS Code
+[group('vscode')]
+hide:
+    @bash scripts/toggle-files.sh hide
+
+# Show all files in VS Code
+[group('vscode')]
+show:
+    @bash scripts/toggle-files.sh show
+
+# ==============================================================================
 # TEMPLATE
 # ==============================================================================
 
@@ -455,17 +469,3 @@ test-template:
         echo -e "{{ERROR}}bats not installed. Run: just setup --template{{NORMAL}}";
         exit 1;
     fi
-
-# ==============================================================================
-# VS CODE
-# ==============================================================================
-
-# Hide non-essential files in VS Code
-[group('vscode')]
-hide:
-    @bash scripts/toggle-files.sh hide
-
-# Show all files in VS Code
-[group('vscode')]
-show:
-    @bash scripts/toggle-files.sh show
