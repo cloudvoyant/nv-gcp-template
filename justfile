@@ -67,7 +67,13 @@ docker-build TAG="":
     #!/usr/bin/env bash
     set -euo pipefail
     IMAGE_VERSION="{{TAG}}"
-    IMAGE_VERSION="${IMAGE_VERSION:-${VERSION}}"
+    # If TAG is provided, append commit hash for uniqueness
+    if [ -n "$IMAGE_VERSION" ]; then
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
+    else
+        IMAGE_VERSION="${VERSION}"
+    fi
     VERSION="${IMAGE_VERSION}" COMPOSE_BAKE=true docker compose build
 
 [group('docker')]
@@ -86,7 +92,13 @@ docker-push TAG="": (docker-build TAG)
     source ./scripts/utils.sh
 
     IMAGE_VERSION="{{TAG}}"
-    IMAGE_VERSION="${IMAGE_VERSION:-${VERSION}}"
+    # If TAG is provided, append commit hash for uniqueness (must match docker-build)
+    if [ -n "$IMAGE_VERSION" ]; then
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
+    else
+        IMAGE_VERSION="${VERSION}"
+    fi
     IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${IMAGE_VERSION}"
 
     log_info "Configuring Docker authentication for Artifact Registry..."
@@ -379,13 +391,14 @@ publish TAG="":
     # Construct package version
     PUBLISH_VERSION="{{TAG}}"
     if [ -n "$PUBLISH_VERSION" ]; then
-        # Pre-release: use next version with RC tag (e.g., 1.2.4-rc.nv-29)
+        # Pre-release: use next version with RC tag and commit hash (e.g., 1.2.4-rc.nv-29.abc1234)
         NEXT_VERSION=$(get_next_version)
         if [ -z "$NEXT_VERSION" ]; then
             log_error "Could not determine next version"
             exit 1
         fi
-        PUBLISH_VERSION="${NEXT_VERSION}-rc.${PUBLISH_VERSION}"
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        PUBLISH_VERSION="${NEXT_VERSION}-rc.${PUBLISH_VERSION}.${COMMIT_HASH}"
         log_info "Publishing pre-release package: ${PROJECT}@${PUBLISH_VERSION}"
     else
         # Release: use version from version.txt

@@ -3,103 +3,150 @@
 ![Version](https://img.shields.io/github/v/release/cloudvoyant/nv-gcp-template?label=version)
 ![Release](https://github.com/cloudvoyant/nv-gcp-template/workflows/Release/badge.svg)
 
-`nv-gcp-template` is a language-agnostic template for building projects with automated versioning, testing, and GitHub Action powered CI/CD workflows. It uses GCP Artifact Registry for publishing generic packages by default, but can be easily adapted for npm, PyPI, NuGet, CodeArtifact, etc.
+A GCP infrastructure template using Terraform for multi-environment deployments with automated CI/CD pipelines.
 
 ## Features
 
-Here's what this template gives you off the bat:
-
-- A language-agnostic self-documenting command interface via `just`. Keep all your project commands organized in one file!
-- Auto-load environment variables and configure shell environment with `direnv` - share project scoped shell configurations and simplify scripting and CLI tool usage without needing to pass around flags and inline environment variables.
-- CI/CD with GitHub Actions - run test on MR commits, tag and release on merges to main.
-- Easy CI/CD customization with language-agnostic bash scripting - No need to get too deep into GitHub Actions for customization. Modify the publish recipe, set GitHub Secrets and you're good to go.
-- Trunk based development and automated versioning with conventional commits - semantic-release will handle version bumping for you! Work on feature branches and merge to main for bumps.
-- GCP Artifact Registry publishing (easily modified for other registries)
-- Cross-platform (macOS, Linux, Windows via WSL) - use the setup script to install dependencies, or alternately develop with Dev Containers or run tasks via Docker
+- Automated preview environments for feature/bugfix/hotfix branches
+- Terraform workspace isolation (dev, stage, prod, preview)
+- Shared GCS backend for centralized state management
+- GitHub Actions workflows for automated deployment
+- Semantic versioning with conventional commits
+- Docker image builds and publishing to GCP Artifact Registry
+- Package publishing to GCP Artifact Registry (generic and Docker)
+- Manual deployment workflows with approval gates
+- Branch-based infrastructure provisioning and cleanup
 
 ## Requirements
 
 - bash 3.2+
-- just
-
-Run `just setup` to install remaining dependencies (just, direnv).
-
-Optional: `just setup --dev` for development tools, `just setup --template` for template testing.
+- just - Command runner
+- Terraform 1.5+
+- gcloud CLI
+- GCP project with billing enabled
 
 ## Quick Start
 
-Scaffold a new project:
+### Create Your Project
 
 ```bash
-# Option 1: Nedavellir CLI (automated)
-nv create your-project-name --platform nv-gcp-template
+# Option 1: Nedavellir CLI
+nv create your-project --template nv-gcp-template
 
 # Option 2: GitHub template + scaffold script
-# Click "Use this template" on GitHub, then:
 git clone <your-new-repo>
 cd <your-new-repo>
-bash scripts/scaffold.sh --project your-project-name
+bash scripts/scaffold.sh --project your-project
 ```
 
-Install dependencies and adapt the template for your needs:
+### Setup
 
 ```bash
-just setup --dev        # Install all dependencies including Claude CLI and Claudevoyant plugin
-just scaffold           # Scaffold project - apply project name and reset version
-claude /adapt           # Guided customization for your language / package manager
+# Install dependencies
+just setup --dev
+
+# Configure .envrc with your GCP project details
+vim .envrc
+
+# Allow direnv
+direnv allow
+
+# Authenticate with GCP
+gcloud auth login
+gcloud auth application-default login
+
+# Create Terraform backend (one-time)
+just tf-create-backend
 ```
 
-Type `just` to see all the tasks at your disposal:
+### Deploy Infrastructure
+
+```bash
+just tf-init          # Initialize Terraform
+just tf-plan          # Preview changes
+just tf-apply         # Apply changes
+```
+
+### Available Commands
+
+Type `just` to see all available commands:
 
 ```bash
 ❯ just
 Available recipes:
-    [dev]
-    load                 # Load environment
-    install              # Install dependencies
-    build                # Build the project
-    run                  # Run project locally
-    test                 # Run tests
-    clean                # Clean build artifacts
+    [terraform]
+    tf-create-backend  # Create GCS backend bucket
+    tf-init           # Initialize backend and workspace
+    tf-plan           # Preview infrastructure changes
+    tf-apply          # Apply Terraform changes
+    tf-destroy        # Destroy infrastructure
 
-[ OUTPUT TRUNCATED ]
+    [docker]
+    docker-build      # Build Docker images
+    docker-push       # Push to GCP Artifact Registry
+
+    [ci]
+    publish           # Publish package
+    deploy            # Deploy application
 ```
 
-Build run and test with `just`. The template will show TODO messages in console prior to adapting.
+## CI/CD Workflows
 
-```bash
-❯ just run
-TODO: Implement build for nv-gcp-template@1.9.1
-TODO: Implement run
+### Feature Branch Workflow
 
-❯ just test
-TODO: Implement build for nv-gcp-template@1.9.1
-TODO: Implement test
-```
+Push to `feature/*`, `bugfix/*`, or `hotfix/*` branches:
 
-Note how just runs the necessary dependencies for a task on it's own!
+1. CI runs tests, linting, formatting
+2. Builds Docker image tagged with issue ID
+3. Publishes pre-release package
+4. Creates isolated Terraform workspace
+5. Provisions preview infrastructure
+6. Deploys application
+7. Cleans up when PR is merged or branch deleted
 
-Commit using conventional commits (`feat:`, `fix:`, `docs:`). Merge/push to main and CI/CD will run automatically bumping your project version and publishing a package.
+### Release Workflow
+
+Push to `main` branch:
+
+1. Analyzes conventional commits
+2. Bumps version and creates git tag
+3. Publishes package and Docker image
+4. Deploys to dev environment
+5. Creates GitHub Release
+
+### Manual Deployment
+
+Deploy to stage/prod via GitHub Actions:
+
+1. Go to Actions → Manual Deployment
+2. Select version tag and environment
+3. Approve deployment (if required)
 
 ## Documentation
 
-To learn more about using this template, read the docs:
+- [User Guide](docs/user-guide.md) - Complete setup and CI/CD workflow guide
+- [Architecture](docs/architecture.md) - System design and Terraform structure
+- [Infrastructure Guide](docs/infrastructure.template.md) - Infrastructure operations
+- [Development Guide](docs/development-guide.template.md) - Developer workflows
 
-- [User Guide](docs/user-guide.md) - Complete setup and usage guide
-- [Architecture](docs/architecture.md) - Design and implementation details
+## Customization
 
-## TODO
+Customize for your language:
 
-- [ ] Pre-release publishing
-- [ ] Template docs improvements
+```bash
+# After scaffolding, customize Docker and package publishing
+just setup --dev
+claude /adapt    # Guided customization (requires Claude CLI)
+```
+
+Update `Dockerfile` and `justfile` build-prod recipe for your language/framework.
 
 ## References
 
+- [Terraform Documentation](https://www.terraform.io/docs)
 - [just command runner](https://github.com/casey/just)
 - [direnv environment management](https://direnv.net/)
 - [semantic-release](https://semantic-release.gitbook.io/)
-- [bats-core bash testing](https://bats-core.readthedocs.io/)
-- [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions](https://docs.github.com/en/actions)
 - [GCP Artifact Registry](https://cloud.google.com/artifact-registry/docs)
