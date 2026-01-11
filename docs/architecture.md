@@ -34,15 +34,15 @@ Preview environments extract issue IDs from branch names for workspace naming:
 
 Terraform workspaces provide state isolation using a shared GCS backend:
 
-- **Backend Bucket**: `${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage` (shared across ALL projects)
-- **Backend Location**: DevOps project (centralized state management)
-- **State Prefix**: `${GCP_PROJECT_ID}/${PROJECT}` (GCP project + application name)
-- **Workspaces**: `dev`, `stage`, `prod`, plus dynamic preview workspaces (e.g., `proj-123`, `bug-1`)
-- **Bucket Features**: Versioning enabled for state history and rollback
+- Backend Bucket: `${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage` (shared across ALL projects)
+- Backend Location: DevOps project (centralized state management)
+- State Prefix: `${GCP_PROJECT_ID}/${PROJECT}` (GCP project + application name)
+- Workspaces: `dev`, `stage`, `prod`, plus dynamic preview workspaces (e.g., `proj-123`, `bug-1`)
+- Bucket Features: Versioning enabled for state history and rollback
 
 ### Multi-Project Backend Architecture
 
-This template uses a **shared backend bucket** strategy to support multiple GCP projects and applications:
+This template uses a shared backend bucket strategy to support multiple GCP projects and applications:
 
 #### State Organization
 
@@ -66,26 +66,27 @@ ${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage/  # Shared bucket (e.g., devo
 
 #### Configuration
 
-- **Bucket**: `${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage` (deterministic, globally unique)
-- **Prefix**: `${GCP_PROJECT_ID}/${PROJECT}` (GCP project + application name)
-- **Workspace**: `dev`, `stage`, `prod`, or `${issue-id}` (environment-specific)
+- Bucket: `${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage` (deterministic, globally unique)
+- Prefix: `${GCP_PROJECT_ID}/${PROJECT}` (GCP project + application name)
+- Workspace: `dev`, `stage`, `prod`, or `${issue-id}` (environment-specific)
 
 #### Benefits
 
-- **Multi-GCP-Project Support**: Supports multiple GCP projects in one bucket
-- **Clear Hierarchy**: GCP Project → Application → Environment structure
-- **Project Isolation**: Each GCP project + app combination is completely isolated
-- **Environment Isolation**: Workspaces provide environment-level isolation
-- **Centralized Management**: One bucket to manage, monitor, and backup
-- **Cost Efficient**: Single bucket for all projects reduces management overhead
+- Multi-GCP-Project Support: Supports multiple GCP projects in one bucket
+- Clear Hierarchy: GCP Project → Application → Environment structure
+- Project Isolation: Each GCP project + app combination is completely isolated
+- Environment Isolation: Workspaces provide environment-level isolation
+- Centralized Management: One bucket to manage, monitor, and backup
+- Cost Efficient: Single bucket for all projects reduces management overhead
 
 ### Resource Naming and Labeling
 
 All GCP resources follow a consistent naming convention:
 
-**Naming Pattern**: `${project}-${environment}--${resource-name}`
+Naming Pattern: `${project}-${environment}--${resource-name}`
 
 Examples:
+
 - Preview: `myapp-proj-123--bucket`
 - Dev: `myapp-dev--bucket`
 - Stage: `myapp-stage--bucket`
@@ -93,7 +94,8 @@ Examples:
 
 The double-dash (`--`) separator distinguishes environment from resource name.
 
-**Standard Labels** (applied to all resources):
+Standard Labels (applied to all resources):
+
 ```hcl
 labels = {
   project     = var.project      # Repository/application name
@@ -123,10 +125,10 @@ These labels enable resource tracking across multiple repositories deploying to 
 
 GitHub environments provide approval gates and secret isolation:
 
-- **preview-*** (dynamic): No approvals, short-lived, auto-created per branch
-- **dev**: No approvals, auto-deploy on merge to main
-- **stage**: Requires manual approval before deploy
-- **prod**: Requires manual approval before deploy
+- preview-\* (dynamic): No approvals, short-lived, auto-created per branch
+- dev: No approvals, auto-deploy on merge to main
+- stage: Requires manual approval before deploy
+- prod: Requires manual approval before deploy
 
 ## How It Works
 
@@ -175,7 +177,7 @@ Preview environments are created automatically when you push to feature/bugfix/h
 
 The infrastructure is defined in Terraform modules under `infra/`:
 
-**Add new resources**: Create new modules in `infra/modules/` and instantiate them in `infra/environments/main.tf`:
+Add new resources: Create new modules in `infra/modules/` and instantiate them in `infra/environments/main.tf`:
 
 ```hcl
 module "new_resource" {
@@ -188,7 +190,7 @@ module "new_resource" {
 }
 ```
 
-**Customize workflows**: The `deploy` recipe in `justfile` is a placeholder for post-infrastructure deployment steps:
+Customize workflows: The `deploy` recipe in `justfile` is a placeholder for post-infrastructure deployment steps:
 
 ```just
 deploy WORKSPACE="":
@@ -303,14 +305,14 @@ All other workflow commands (`/spec:new/go/pause`, `/dev:commit`, `/dev:review`,
 
 The `Dockerfile` uses a multi-stage build to support both minimal runtime environments and full development environments from a single file:
 
-**Base Stage** (`target: base`):
+Base Stage (`target: base`):
 
 - Used by docker-compose for `just docker-run` and `just docker-test`
 - Installs only essential dependencies: bash, just, direnv
 - Fast build time (~1-2 minutes)
 - Minimal image size for quick iteration
 
-**Dev Stage** (`target: dev`):
+Dev Stage (`target: dev`):
 
 - Used by VS Code DevContainers
 - Builds on top of base stage
@@ -407,11 +409,13 @@ Required GCP secrets:
 
 The service account should have these roles:
 
-**In DevOps Project**:
+In DevOps Project:
+
 - `roles/storage.objectAdmin` (for tfstate bucket)
 - `roles/artifactregistry.writer` (for artifact publishing)
 
-**In Infrastructure Project**:
+In Infrastructure Project:
+
 - `roles/compute.admin` or resource-specific roles
 - `roles/storage.admin` (for GCS buckets)
 - Other roles based on resources you provision

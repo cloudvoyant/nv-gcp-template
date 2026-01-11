@@ -1,649 +1,400 @@
 # User Guide
 
-`nv-gcp-template` is a GCP infrastructure-as-code template using Terraform for resource management with robust CI/CD that supports multiple environments, artifact publishing and automated infrastructure updates.
+A GCP infrastructure template using Terraform for multi-environment deployments with automated CI/CD pipelines.
 
-## Features
+## Getting Started
 
-Here's what this template enables you to do:
-
-- Manage infra declaratively with IaC via Terraform
-- Manage multiple environments with Terraform workspaces
-- Implement trunk-based development for projects with infra
-- Automate infra updates across environments via GitHub Actions
-- Create preview environments (with isolated infra) on commits to `feature/hotfix/bugfix` branches
-- Offer a self-documenting command interface for Terraform operations (`tf-plan`, `tf-apply`, `tf-destroy`) as well as other common project tasks such as building, testing, etc.
-- Standardize env configuration for managing infra and code artifacts with GCP
-- Support cross-platform development for contributors
-
-## Requirements
-
-- bash 3.2+
-- [just](https://just.systems/man/en/)
--
-- [Terraform](https://www.terraform.io/) 1.5+
-- [gcloud CLI](https://cloud.google.com/sdk/docs/install)
-- GCP project with billing enabled
-
-Run `just setup` to install bash, just, and direnv.
-
-Optional: `just setup --dev` for development tools (docker, gcloud, shellcheck, etc.)
-
-## Quick Start
-
-### 1. Scaffold a New Project
+### 1. Create Your Project
 
 ```bash
-# Option 1: Nedavellir CLI (automated)
-nv create your-infra-project --template nv-gcp-template
+# Option 1: Using Nedavellir CLI
+nv create your-project --template nv-gcp-template
 
-# Option 2: GitHub template + scaffold script
-# Click "Use this template" on GitHub, then:
-git clone <your-new-repo>
-cd <your-new-repo>
-bash scripts/scaffold.sh --project your-infra-project
+# Option 2: Manual setup
+git clone <your-repo>
+cd <your-repo>
+bash scripts/scaffold.sh --project your-project
 ```
 
 ### 2. Configure GCP Projects
 
-Edit `.envrc` with your GCP project details:
+Edit `.envrc`:
 
 ```bash
-# DevOps Project (hosts tfstate bucket, registries)
+# DevOps project (hosts tfstate, artifact registry, docker registry)
 export GCP_DEVOPS_PROJECT_ID=my-devops-project
 export GCP_DEVOPS_PROJECT_REGION=us-east1
-export GCP_DEVOPS_REGISTRY_NAME=my-registry
+export GCP_DEVOPS_REGISTRY_NAME=my-artifact-registry
+export GCP_DEVOPS_DOCKER_REGISTRY_NAME=my-docker-registry
 
-# Infrastructure Project (where resources are provisioned)
+# Infrastructure project (where resources are provisioned)
 export GCP_PROJECT_ID=my-app-project
 export GCP_REGION=us-east1
 ```
 
-Allow direnv to load the configuration:
+Allow direnv:
 
 ```bash
 direnv allow
 ```
 
-### 3. Authenticate with GCP
+### 3. Set Up GCP Authentication
+
+Authenticate locally:
 
 ```bash
 gcloud auth login
 gcloud auth application-default login
 ```
 
+Create CI/CD service account:
+
+```bash
+# Create service account in DevOps project
+gcloud iam service-accounts create github-actions \
+  --project=${GCP_DEVOPS_PROJECT_ID}
+
+# Grant organization-level editor role (or specific project roles as needed)
+gcloud organizations add-iam-policy-binding <ORG_ID> \
+  --member="serviceAccount:github-actions@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/editor"
+
+# Create and download key
+gcloud iam service-accounts keys create github-actions-key.json \
+  --iam-account=github-actions@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com
+```
+
+Add to GitHub Secrets:
+1. Go to repository Settings → Secrets → Actions
+2. Create secret `GCP_SA_KEY` with contents of `github-actions-key.json`
+3. Delete local key: `rm github-actions-key.json`
+
 ### 4. Create Terraform Backend
 
-This is a one-time setup to create the GCS bucket for Terraform state:
+One-time setup:
 
 ```bash
 just tf-create-backend
 ```
 
-### 5. Initialize and Deploy
+### 5. Deploy Infrastructure
 
 ```bash
-just tf-init          # Initialize Terraform backend and workspace
-just tf-plan          # Preview infrastructure changes
-just tf-apply         # Apply changes (creates a storage bucket by default)
-```
-
-Type `just` to see all available commands:
-
-```bash
-❯ just
-Available recipes:
-    [terraform]
-    tf-create-backend  # Create GCS backend bucket
-    tf-init           # Initialize Terraform backend
-    tf-plan           # Run Terraform plan
-    tf-apply          # Apply Terraform changes
-    tf-destroy        # Destroy infrastructure
-
-    [ci]
-    docker-push       # Push Docker image to GCR
-    deploy            # Deploy application
-
-[ OUTPUT TRUNCATED ]
-```
-
-### Using Docker
-
-The template includes Docker support for running tasks in isolated containers without installing dependencies on your host machine.
-
-Prerequisites:
-
-- Docker Desktop or Docker Engine
-
-Available Docker commands:
-
-```bash
-just docker-build    # Build the Docker image
-just docker-run      # Run the project in a container
-just docker-test     # Run tests in a container
-```
-
-The `Dockerfile` and `docker-compose.yml` are configured to install all required dependencies automatically. This is useful for:
-
-- Running tasks without installing tools locally
-- Ensuring consistency across different development machines
-- Testing in a clean environment
-
-### Using Dev Containers
-
-The template includes a pre-configured devcontainer for consistent cross-platform development environments across your team.
-
-Prerequisites on host:
-
-- Docker Desktop or Docker Engine
-- VS Code with Dev Containers extension
-
-If you have Docker running and the Dev Container extension installed, then you can simply:
-
-1. Open project in VS Code
-2. Command Palette (Cmd/Ctrl+Shift+P) → "Dev Containers: Reopen in Container"
-3. Wait for container build (first time only)
-
-VS Code should reopen. In your terminal, you will now find everything you need including `just`, `direnv`, `gcloud` and more:
-
-- Git, GitHub CLI, and Google Cloud CLI pre-installed
-- Git credentials automatically shared from host via SSH agent forwarding
-- Claude CLI credentials mounted from `~/.claude`
-- All VS Code extensions for shell development (shellcheck, just syntax, etc.)
-- Docker-in-Docker support for building containers
-
-Authentication:
-
-- Git/GitHub: Automatic via SSH agent forwarding (no setup needed)
-- gcloud: Run `gcloud auth login` inside the container on first use
-- Claude: Automatically available if configured on host
-
-## Terraform Workflows
-
-### Local Development
-
-Work on infrastructure changes locally before pushing:
-
-```bash
-# Plan changes for current workspace (inferred from branch)
+just tf-init
 just tf-plan
-
-# Plan changes for specific workspace
-just tf-plan dev
-
-# Apply changes with confirmation prompt
 just tf-apply
-
-# Apply changes without prompt (use in CI)
-just tf-apply dev --auto-approve
-
-# Destroy infrastructure (prompts for confirmation)
-just tf-destroy
-
-# Destroy without confirmation (use in CI)
-just tf-destroy preview-123 --auto-approve
 ```
 
-The workspace is automatically inferred from your current git branch:
+## CI/CD Workflows
 
-- On `main` branch → `dev` workspace
-- On `feature/PROJ-123-*` → `proj-123` workspace
-- On other branches → `dev` workspace (fallback)
+The template provides three deployment workflows based on git branching.
 
-### Preview Environments
+### Feature Branch Workflow (Preview Environments)
 
-Preview environments are automatically created when you push to feature/bugfix/hotfix branches:
-
-**Branch Naming Pattern**: `feature/TRACKER-ID-description`
+Branch naming: `feature/ISSUE-ID-description`, `bugfix/ISSUE-ID-description`, `hotfix/ISSUE-ID-description`
 
 Examples:
+- `feature/PROJ-123-add-storage` → workspace `proj-123`
+- `bugfix/BUG-42-fix-auth` → workspace `bug-42`
 
-- `feature/JIRA-123-add-monitoring` → workspace `jira-123`
-- `bugfix/BUG-1-fix-auth` → workspace `bug-1`
-- `hotfix/PROD-999-critical` → workspace `prod-999`
+What happens:
 
-**Workflow**:
+1. Push to feature branch triggers CI workflow
+2. CI runs tests, linting, formatting checks
+3. On success, preview job:
+   - Builds Docker image tagged with issue ID (e.g., `registry/app:proj-123`)
+   - Publishes pre-release package (e.g., `app@1.0.3-rc.proj-123`)
+   - Creates isolated Terraform workspace
+   - Provisions preview infrastructure
+   - Deploys application
 
-1. Create a branch: `git checkout -b feature/PROJ-456-new-feature`
-2. Push to GitHub: `git push origin feature/PROJ-456-new-feature`
-3. GitHub Actions automatically:
+4. When PR is merged or branch deleted:
+   - Cleanup workflow destroys all preview infrastructure
+   - Removes Terraform workspace
 
-   - Extracts issue ID (`proj-456`)
-   - Creates Terraform workspace `proj-456`
-   - Provisions infrastructure
-   - Comments on PR with deployment details
+No manual steps required - everything is automated.
 
-4. When merged or branch deleted:
-   - GitHub Actions runs cleanup workflow
-   - Destroys all infrastructure in that workspace
-   - Removes the Terraform workspace
+### Release Workflow (Dev Deployment)
 
-### Stage and Production Deployments
+Trigger: Push to `main` branch
 
-Stage and production deployments are manual and require approval:
+What happens:
 
-1. **Navigate to GitHub Actions**: Go to your repository → Actions tab
+1. Runs tests
+2. Analyzes conventional commits to determine version bump:
+   - `feat:` → minor bump (1.0.0 → 1.1.0)
+   - `fix:`, `docs:`, `refactor:`, etc. → patch bump (1.0.0 → 1.0.1)
+   - `feat!:` or `BREAKING CHANGE:` → major bump (1.0.0 → 2.0.0)
 
-2. **Run Manual Deployment**:
+3. If new version created:
+   - Updates `version.txt` and `CHANGELOG.md`
+   - Creates git tag (e.g., `v1.2.3`)
+   - Builds production artifacts
+   - Publishes package (e.g., `app@1.2.3`)
+   - Builds Docker image tagged with version (e.g., `registry/app:1.2.3`)
+   - Pushes Docker image to registry
+   - Deploys to dev environment
+   - Creates GitHub Release
 
-   - Select "Manual Deployment" workflow
-   - Click "Run workflow"
-   - Enter version tag (e.g., `1.2.3`)
-   - Select environment (`stage` or `prod`)
-   - Click "Run workflow"
-
-3. **Approve Deployment** (if required):
-   - GitHub will pause and request approval
-   - Designated approvers review the deployment
-   - Click "Approve and deploy" to proceed
-
-### Commit and Release
-
-Use conventional commits for automatic versioning:
-
-```bash
-git commit -m "feat: add cloud run module"      # Minor bump (0.1.0 → 0.2.0)
-git commit -m "fix: resolve bucket policy"      # Patch bump (0.1.0 → 0.1.1)
-git commit -m "docs: update architecture"       # No bump
-git commit -m "feat!: breaking change"          # Major bump (0.1.0 → 1.0.0)
-```
-
-Push to main:
+Commit convention:
 
 ```bash
-git push origin main
+git commit -m "feat: add cloud storage module"     # Minor bump
+git commit -m "fix: resolve auth timeout"          # Patch bump
+git commit -m "docs: update deployment guide"      # Patch bump
+git commit -m "feat!: redesign API"                # Major bump
 ```
 
-CI/CD automatically:
+### Manual Deployment (Stage/Prod)
 
-- Runs tests (if configured)
-- Creates a new release with semantic-release
-- Builds and pushes Docker image (optional)
-- Updates dev environment infrastructure
+Trigger: Manual workflow dispatch
+
+Steps:
+
+1. Go to repository → Actions → "Manual Deployment"
+2. Click "Run workflow"
+3. Enter:
+   - Version: Version tag to deploy (e.g., `1.2.3`)
+   - Environment: `stage` or `prod`
+4. Click "Run workflow"
+5. If environment requires approval, designated reviewers will be notified
+
+What happens:
+
+- Checks out git tag `v1.2.3`
+- Uses version from that tag's `version.txt`
+- Runs Terraform plan/apply for selected workspace
+- Deploys application using pre-built Docker image from registry
+
+Note: Image must already exist in registry (created during release workflow).
+
+### Environment Protection
+
+Configure approval requirements:
+
+1. Go to Settings → Environments
+2. Create environments: `dev`, `stage`, `prod`
+3. For `stage` and `prod`:
+   - Add "Required reviewers"
+   - Set branch restriction to `main`
+4. For `dev`: No approvals needed
+
+## Language-Specific Customization
+
+The template includes placeholder Docker and artifact publishing that you'll customize for your language.
+
+### Customizing Docker Image
+
+Step 1: Update Dockerfile
+
+The default `Dockerfile` is a minimal example. Replace it with your language's build process:
+
+```dockerfile
+# Python Example
+FROM python:3.11-slim as base
+WORKDIR /workspace
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["python", "src/main.py"]
+
+# Go Example
+FROM golang:1.21 as builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server
+
+FROM alpine:latest
+COPY --from=builder /app/server /server
+CMD ["/server"]
+
+# Node.js Example
+FROM node:20-alpine as base
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+CMD ["node", "src/index.js"]
+```
+
+Step 2: Update docker-compose.yml (optional)
+
+The `docker-compose.yml` file is for local development. Modify the services as needed:
+
+```yaml
+services:
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
+    container_name: ${PROJECT}-runner
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: bash -c "just run"  # Customize this command
+```
+
+Step 3: Image is automatically built and pushed by CI
+
+No changes needed to workflows - they use:
+- `just docker-build` → runs `docker compose build`
+- `just docker-push` → authenticates and pushes to GCP Artifact Registry
+
+### Customizing Package Publishing
+
+Step 1: Update build-prod recipe
+
+Edit `justfile` to build your language's artifacts:
+
+```just
+# Python example
+build-prod:
+    python -m build
+    cp dist/*.whl dist/artifact.txt  # or whatever your artifact is
+
+# Go example
+build-prod:
+    GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux-amd64
+    echo "myapp-linux-amd64" > dist/artifact.txt
+
+# Node.js example
+build-prod:
+    npm run build
+    npm pack --pack-destination=dist/
+    ls dist/*.tgz > dist/artifact.txt
+```
+
+Step 2: Package is automatically published by CI
+
+The `publish` recipe uploads to GCP Artifact Registry:
+- Release builds: `app@1.2.3`
+- Preview builds: `app@1.0.3-rc.proj-123`
+
+Step 3: Optional - Publish to language-specific registries
+
+Modify the `publish` recipe to also publish to npm, PyPI, etc.:
+
+```just
+publish TAG="":
+    # ... existing GCP artifact registry upload ...
+
+    # Publish to npm
+    if [ -z "{{TAG}}" ]; then
+        npm publish
+    fi
+
+    # Publish to PyPI
+    if [ -z "{{TAG}}" ]; then
+        python -m twine upload dist/*
+    fi
+```
+
+## Local Development
 
 ### Viewing Hidden Files (VS Code)
 
-The template provides `just hide` and `just show` commands to toggle file visibility in VS Code, helping you focus on code or see the full project structure as needed.
-
-Hide non-essential files (show only code and documentation):
+Toggle file visibility to focus on code or see full project structure:
 
 ```bash
+# Hide infrastructure files, show only: docs/, src/, test/, .claude/, .envrc, justfile, README.md
 just hide
-```
 
-This hides infrastructure files and shows only: `docs/`, `src/`, `test/`, `.claude/`, `.envrc`, `justfile`, and `README.md`.
-
-Show all files:
-
-```bash
+# Show all files including .github/, .vscode/, Dockerfile, scripts/, etc.
 just show
 ```
 
-This reveals all hidden configuration files (`.github/`, `.vscode/`, `.devcontainer/`, `Dockerfile`, `docker-compose.yml`, `scripts/`, etc.).
+Limitation: Hidden files won't appear in VS Code search (Cmd+Shift+F) unless you run `just show` first.
 
-**Note**: These commands are VS Code-specific and modify `.vscode/settings.json`. If you use a different editor, you'll need to configure file visibility using your editor's native settings.
+### Local Docker Operations
 
-**Limitation**: Hidden files won't appear in VS Code search results (Cmd+Shift+F) unless you run `just show` first or toggle "Use Exclude Settings" in the search panel.
-
-## GCP Authentication
-
-### Local Development
-
-For local Terraform operations:
+Build and push Docker images locally:
 
 ```bash
-# Authenticate with your user account
-gcloud auth login
+# Build with current version from version.txt
+just docker-build
 
-# Set up application default credentials for Terraform
-gcloud auth application-default login
+# Build with custom tag
+just docker-build my-feature-tag
 
-# Verify authentication
-gcloud auth list
+# Push to registry (requires gcloud auth)
+just docker-push
+
+# Push with custom tag
+just docker-push my-feature-tag
 ```
 
-### CI/CD (GitHub Actions)
+The image name follows this pattern:
+```
+${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${TAG}
+```
 
-Create a service account with appropriate permissions:
+### Local Artifact Publishing
+
+Publish packages locally:
 
 ```bash
-# In DevOps project (for tfstate and registries)
-gcloud iam service-accounts create terraform-ci \
-  --project=${GCP_DEVOPS_PROJECT_ID} \
-  --display-name="Terraform CI/CD"
+# Publish release version (uses version.txt)
+just publish
 
-# Grant roles in DevOps project
-gcloud projects add-iam-policy-binding ${GCP_DEVOPS_PROJECT_ID} \
-  --member="serviceAccount:terraform-ci@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/storage.objectAdmin"
-
-gcloud projects add-iam-policy-binding ${GCP_DEVOPS_PROJECT_ID} \
-  --member="serviceAccount:terraform-ci@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/artifactregistry.writer"
-
-# Grant roles in Infrastructure project
-gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
-  --member="serviceAccount:terraform-ci@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/storage.admin"
-
-# Add other roles as needed for your resources (compute.admin, etc.)
-
-# Create and download key
-gcloud iam service-accounts keys create terraform-ci-key.json \
-  --iam-account=terraform-ci@${GCP_DEVOPS_PROJECT_ID}.iam.gserviceaccount.com \
-  --project=${GCP_DEVOPS_PROJECT_ID}
+# Publish pre-release with tag
+just publish my-test-tag
+# Creates version: 1.0.3-rc.my-test-tag
 ```
-
-Add the key content to GitHub Secrets:
-
-1. Go to repository Settings → Secrets → Actions
-2. Create new secret: `GCP_SA_KEY`
-3. Paste the entire contents of `terraform-ci-key.json`
-4. Delete the local key file: `rm terraform-ci-key.json`
-
-### GitHub Environment Configuration
-
-Configure environments with approval requirements:
-
-1. Go to repository Settings → Environments
-2. Create environments: `dev`, `stage`, `prod`
-3. For `stage` and `prod`:
-   - Add "Required reviewers" (select team members)
-   - Set deployment branch rule to "Selected branches" → `main`
-4. For `dev`:
-   - No approvals needed (auto-deploys)
-
-## Customizing Infrastructure
-
-### Adding New Terraform Modules
-
-Create a new module in `infra/modules/`:
-
-```bash
-mkdir -p infra/modules/cloud-run
-cd infra/modules/cloud-run
-```
-
-Create `main.tf`, `variables.tf`, and `outputs.tf` following the same pattern as the storage-bucket module.
-
-Instantiate the module in `infra/environments/main.tf`:
-
-```hcl
-module "cloud_run" {
-  source = "../modules/cloud-run"
-
-  project          = var.project
-  gcp_project_id   = var.gcp_project_id
-  gcp_region       = var.gcp_region
-  environment_name = var.environment_name
-}
-```
-
-### Customizing the Deploy Recipe
-
-The `deploy` recipe is a placeholder for post-infrastructure deployment steps. Edit it in `justfile`:
-
-```just
-deploy WORKSPACE="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source ./scripts/utils.sh
-
-    WORKSPACE_NAME="${WORKSPACE:-$(infer_terraform_workspace)}"
-
-    log_info "Deploying application to workspace: ${WORKSPACE_NAME}"
-
-    # Example: Deploy to Cloud Run
-    # gcloud run deploy my-service \
-    #     --image=gcr.io/${GCP_PROJECT_ID}/my-app:latest \
-    #     --region=${GCP_REGION} \
-    #     --platform=managed
-
-    # Example: Deploy to GKE
-    # kubectl apply -f k8s/ --context=${WORKSPACE_NAME}
-```
-
-## Troubleshooting
-
-### Terraform State Lock Issues
-
-If Terraform operations fail with a state lock error:
-
-```bash
-# List locks (requires storage.objects.list permission)
-gsutil ls gs://${PROJECT}-tfstate/terraform/state/
-
-# Remove a stuck lock (use with caution!)
-# Only do this if you're CERTAIN no other process is running
-terraform force-unlock <LOCK_ID>
-```
-
-### Workspace Not Found
-
-If you get "workspace doesn't exist" errors:
-
-```bash
-# List available workspaces
-cd infra/environments
-terraform workspace list
-
-# Create workspace manually if needed
-terraform workspace new <workspace-name>
-```
-
-### Permission Denied Errors
-
-Verify your service account has the necessary roles:
-
-```bash
-# Check IAM policy for DevOps project
-gcloud projects get-iam-policy ${GCP_DEVOPS_PROJECT_ID} \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:serviceAccount:terraform-ci@*"
-
-# Check IAM policy for Infrastructure project
-gcloud projects get-iam-policy ${GCP_PROJECT_ID} \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:serviceAccount:terraform-ci@*"
-```
-
-### GitHub Actions Workflow Failures
-
-View detailed logs:
-
-1. Go to repository → Actions tab
-2. Click on the failed workflow run
-3. Expand each step to see error messages
-4. Check "Terraform Plan" and "Terraform Apply" steps for infrastructure errors
-
-Common issues:
-
-- Missing `GCP_SA_KEY` secret
-- Service account permissions insufficient
-- Backend bucket doesn't exist (run `just tf-create-backend`)
-- Invalid Terraform syntax (test locally with `just tf-plan`)
-
-## Advanced Usage
-
-### Managing Multiple Infrastructure Projects
-
-If you have multiple infrastructure repositories deploying to the same GCP project, the resource labeling convention allows you to identify resources by project:
-
-```bash
-# List all resources for a specific project in GCP Console
-# Filter by labels: project=myapp, environment=dev
-```
-
-### Understanding State Management
-
-#### Shared Backend Architecture
-
-This template uses a **shared backend bucket** approach where all GCP projects and applications store state in a single GCS bucket:
-
-- **Shared Bucket**: `${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage` (e.g., `devops-466002-terraform-backend-storage`)
-- **Prefix**: `${GCP_PROJECT_ID}/${PROJECT}` (GCP project + application name)
-- **Workspace**: `dev`, `stage`, `prod`, or preview workspace like `proj-123`
-
-**Full state path example:**
-
-```
-gs://devops-466002-terraform-backend-storage/my-gcp-project/myapp/env:/dev/default.tfstate
-                                              └─gcp-project─┘ └app┘ └workspace┘
-```
-
-#### Why This Approach?
-
-1. **Multi-GCP-Project Support**: Multiple GCP projects can share the same backend
-2. **Clear Hierarchy**: GCP Project → Application → Environment is explicit
-3. **Complete Isolation**: Each GCP project + app is fully isolated by prefix
-4. **Standard Tooling**: Uses Terraform's built-in workspace feature
-5. **Easy Management**: One bucket to configure, backup, and monitor
-
-#### Viewing State Files
-
-List state files for your application:
-
-```bash
-# List all workspaces for this application
-gsutil ls gs://${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage/${GCP_PROJECT_ID}/${PROJECT}/
-
-# View specific workspace state
-just tf-init dev
-cd infra/environments
-terraform state list
-```
-
-### Custom Branch Patterns
-
-To support different issue tracker formats, modify `extract_issue_id()` in `scripts/utils.sh`:
-
-```bash
-# Example: Support numeric-only issue IDs (e.g., feature/123-description)
-if [[ "$branch_name" =~ ^(feature|bugfix|hotfix)/([0-9]+) ]]; then
-    local issue_id="issue-${BASH_REMATCH[2]}"
-    echo "${issue_id}"
-fi
-```
-
-### Environment-Specific Configurations
-
-Use Terraform variables and workspace-based tfvars files for environment-specific settings:
-
-```hcl
-# infra/environments/variables.tf
-variable "instance_count" {
-  description = "Number of instances"
-  type        = number
-  default     = 1
-}
-
-# In main.tf, use locals to set environment-specific values
-locals {
-  instance_count = var.environment_name == "prod" ? 3 : 1
-}
-```
-
-## Testing (Template Development)
-
-This template includes integration tests that verify Terraform infrastructure provisioning. These tests are used during template development and are automatically removed when scaffolding a new project.
 
 ### Running Tests
 
 ```bash
-# Setup test dependencies (template repo only)
-just setup --template
-
-# Run all template tests
 just test
-
-# The test recipe delegates to test-template, which runs:
-# - Unit tests for utility functions (test/utils.bats)
-# - Integration tests for Terraform commands (test/terraform-integration.bats)
 ```
 
-### Test Types
+After scaffolding, implement your own tests:
+1. Create test files in `test/` directory
+2. Update `test` recipe in justfile
+3. Tests run automatically in CI
 
-**Unit Tests** (`test/utils.bats`):
+## Troubleshooting
 
-- Test utility functions without GCP
-- Fast, run on every PR
-- Test issue ID extraction, workspace inference, etc.
+### Terraform State Lock
 
-**Integration Tests** (`test/terraform-integration.bats`):
-
-- Actually provision infrastructure with Terraform
-- Verify `just tf-*` commands work correctly
-- Automatic cleanup after tests
-- Require GCP credentials and project setup
-
-### Manual Inspection
-
-Skip cleanup to inspect infrastructure:
+If operations fail with state lock error:
 
 ```bash
-SKIP_CLEANUP=1 just test
-# Infrastructure left intact for inspection
-# Clean up manually: just tf-destroy tf-test-TIMESTAMP --auto-approve
+# Only use if you're certain no other process is running
+terraform force-unlock <LOCK_ID>
 ```
 
-Skip integration tests entirely:
+### Preview Environment Not Cleaning Up
+
+Check cleanup workflow logs in GitHub Actions. Common issues:
+- Workflow didn't trigger (check branch name pattern)
+- Terraform destroy failed (check permissions)
+
+Manually clean up:
 
 ```bash
-SKIP_TF_TESTS=1 just test
+just tf-destroy proj-123 --auto-approve
 ```
 
-### CI/CD
+### Docker Push Authentication Failed
 
-- Tests run via `just test` in all workflows
-- After scaffolding, `just test` becomes a placeholder for project-specific tests
-- Template tests (`test/` directory) and `test-template` recipe are removed during scaffolding
+Ensure gcloud is authenticated:
 
-### For Scaffolded Projects
+```bash
+gcloud auth login
+gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
+```
 
-After scaffolding, implement your own tests by:
+### Package Upload Failed
 
-1. Creating test files in `test/` directory
-2. Updating the `test` recipe in justfile to run your tests
-3. Tests will automatically run in CI/CD via existing workflows
+Check service account has `artifactregistry.writer` role on DevOps project.
 
 ## Next Steps
 
-- Review [architecture.md](architecture.md) for technical details
-- Explore example modules in `infra/modules/`
-- Set up GitHub environment protection rules
-- Configure monitoring and alerting for your infrastructure
-- Add custom Terraform modules for your application needs
-
-## LLM Assistance with Claude
-
-Claude commands provide guided workflows for complex tasks. The template includes two custom commands, while most workflow commands come from the [Claudevoyant plugin](https://github.com/cloudvoyant/claudevoyant) (automatically installed with `just setup --dev`).
-
-### Template Commands
-
-```bash
-claude /adapt                   # Customize template for your language (auto-deletes after use)
-claude /upgrade                 # Migrate to newer template version
-```
-
-### Plugin Commands (from Claudevoyant)
-
-```bash
-claude /spec:new                # Create a new project plan
-claude /spec:go                 # Execute the plan with spec-driven development
-claude /spec:pause              # Capture insights for resuming work later
-claude /spec:refresh            # Update plan status
-claude /adr:new                 # Create architectural decision record
-claude /adr:capture             # Capture decisions from conversation
-claude /dev:docs                    # Validate documentation
-claude /dev:commit                  # Create conventional commit
-claude /dev:review                  # Perform code review
-```
-
-### Upgrading Projects
-
-When a new template version is released:
-
-```bash
-claude /upgrade
-```
-
-This creates a comprehensive migration plan, compares files, and walks you through changes while preserving your infrastructure customizations.
+- Review [architecture.md](architecture.md) for system design details
+- Customize `infra/modules/` for your infrastructure needs
+- Update `justfile` deploy recipe for your deployment method
+- Set up monitoring and alerting for your resources
