@@ -60,3 +60,21 @@ RUN echo 'eval "$(starship init bash)"' >> /home/vscode/.bashrc && \
 
 USER vscode
 WORKDIR /workspaces
+
+# # ==============================================================================
+# # Service
+# # ==============================================================================
+
+FROM base AS service
+
+# TODO: make minimal as needed
+COPY . .
+RUN just build
+
+USER node
+ENV PORT=8080
+EXPOSE 8080
+
+# TODO: modify entrypoint as needed
+CMD ["just", "run"]
+
