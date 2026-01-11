@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: prod # Use production stage
+      target: service # Use production stage
     image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
     container_name: ${PROJECT:-app}-service
     environment:
