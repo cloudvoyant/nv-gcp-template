@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: base  # Use minimal base stage (fast build)
-    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
+      target: base # Use minimal base stage (fast build)
+    image: ${PROJECT}-runner:${VERSION}
     container_name: ${PROJECT:-app}-runner
     volumes:
       - .:/workspace
@@ -21,13 +21,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: base  # Use minimal base stage (fast build)
-    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
+      target: base # Use minimal base stage (fast build)
+    image: ${PROJECT}-tester:${VERSION}
     container_name: ${PROJECT:-app}-tester
     volumes:
       - .:/workspace
     working_dir: /workspace
     command: bash -c "just test"
+    networks:
+      - app-network
+
+  # Production service - optimized runtime for Cloud Run and production
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod # Use production stage
+    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
+    container_name: ${PROJECT:-app}-service
+    environment:
+      - PORT=8080
+    ports:
+      - "8080:8080"
     networks:
       - app-network
 
