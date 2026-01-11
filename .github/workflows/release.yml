@@ -56,7 +56,7 @@ jobs:
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: just docker-push ${{ steps.upversion.outputs.new_release_version }}
+        run: just docker-push
 
       - name: Deploy to Dev Environment
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''

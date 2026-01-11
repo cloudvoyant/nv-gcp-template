@@ -1,26 +1,25 @@
 # User Guide
 
-`nv-gcp-template` is a GCP infrastructure-as-code template using Terraform for resource management. It provides automated preview environments for feature branches and a structured deployment workflow (dev → stage → prod) with approval gates.
+`nv-gcp-template` is a GCP infrastructure-as-code template using Terraform for resource management with robust CI/CD that supports multiple environments, artifact publishing and automated infrastructure updates.
 
 ## Features
 
-Here's what this template gives you:
+Here's what this template enables you to do:
 
-- **Branch-Based Infrastructure**: Feature/bugfix/hotfix branches automatically create isolated preview environments
-- **Terraform Workspaces**: State isolation for dev, stage, prod, and preview environments
-- **GCS Backend**: Centralized state management in DevOps project with versioning
-- **Just Commands**: Self-documenting command interface for Terraform operations (`tf-plan`, `tf-apply`, `tf-destroy`)
-- **Direnv Integration**: Auto-load GCP project configuration and environment variables
-- **GitHub Actions Workflows**: Automated infrastructure provisioning on branch pushes, manual deployments for stage/prod
-- **Approval Gates**: GitHub environments with required approvals for production deployments
-- **Resource Naming Convention**: Consistent naming and labeling for multi-repository GCP projects
-- **Docker Support**: Optional container image publishing to GCP Container Registry
-- **Cross-platform**: macOS, Linux, Windows via WSL, or use Dev Containers
+- Manage infra declaratively with IaC via Terraform
+- Manage multiple environments with Terraform workspaces
+- Implement trunk-based development for projects with infra
+- Automate infra updates across environments via GitHub Actions
+- Create preview environments (with isolated infra) on commits to `feature/hotfix/bugfix` branches
+- Offer a self-documenting command interface for Terraform operations (`tf-plan`, `tf-apply`, `tf-destroy`) as well as other common project tasks such as building, testing, etc.
+- Standardize env configuration for managing infra and code artifacts with GCP
+- Support cross-platform development for contributors
 
 ## Requirements
 
 - bash 3.2+
 - [just](https://just.systems/man/en/)
+-
 - [Terraform](https://www.terraform.io/) 1.5+
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install)
 - GCP project with billing enabled
@@ -185,6 +184,7 @@ just tf-destroy preview-123 --auto-approve
 ```
 
 The workspace is automatically inferred from your current git branch:
+
 - On `main` branch → `dev` workspace
 - On `feature/PROJ-123-*` → `proj-123` workspace
 - On other branches → `dev` workspace (fallback)
@@ -196,14 +196,17 @@ Preview environments are automatically created when you push to feature/bugfix/h
 **Branch Naming Pattern**: `feature/TRACKER-ID-description`
 
 Examples:
+
 - `feature/JIRA-123-add-monitoring` → workspace `jira-123`
 - `bugfix/BUG-1-fix-auth` → workspace `bug-1`
 - `hotfix/PROD-999-critical` → workspace `prod-999`
 
 **Workflow**:
+
 1. Create a branch: `git checkout -b feature/PROJ-456-new-feature`
 2. Push to GitHub: `git push origin feature/PROJ-456-new-feature`
 3. GitHub Actions automatically:
+
    - Extracts issue ID (`proj-456`)
    - Creates Terraform workspace `proj-456`
    - Provisions infrastructure
@@ -221,6 +224,7 @@ Stage and production deployments are manual and require approval:
 1. **Navigate to GitHub Actions**: Go to your repository → Actions tab
 
 2. **Run Manual Deployment**:
+
    - Select "Manual Deployment" workflow
    - Click "Run workflow"
    - Enter version tag (e.g., `1.2.3`)
@@ -250,6 +254,7 @@ git push origin main
 ```
 
 CI/CD automatically:
+
 - Runs tests (if configured)
 - Creates a new release with semantic-release
 - Builds and pushes Docker image (optional)
@@ -329,6 +334,7 @@ gcloud iam service-accounts keys create terraform-ci-key.json \
 ```
 
 Add the key content to GitHub Secrets:
+
 1. Go to repository Settings → Secrets → Actions
 2. Create new secret: `GCP_SA_KEY`
 3. Paste the entire contents of `terraform-ci-key.json`
@@ -443,12 +449,14 @@ gcloud projects get-iam-policy ${GCP_PROJECT_ID} \
 ### GitHub Actions Workflow Failures
 
 View detailed logs:
+
 1. Go to repository → Actions tab
 2. Click on the failed workflow run
 3. Expand each step to see error messages
 4. Check "Terraform Plan" and "Terraform Apply" steps for infrastructure errors
 
 Common issues:
+
 - Missing `GCP_SA_KEY` secret
 - Service account permissions insufficient
 - Backend bucket doesn't exist (run `just tf-create-backend`)
@@ -555,11 +563,13 @@ just test
 ### Test Types
 
 **Unit Tests** (`test/utils.bats`):
+
 - Test utility functions without GCP
 - Fast, run on every PR
 - Test issue ID extraction, workspace inference, etc.
 
 **Integration Tests** (`test/terraform-integration.bats`):
+
 - Actually provision infrastructure with Terraform
 - Verify `just tf-*` commands work correctly
 - Automatic cleanup after tests
@@ -590,6 +600,7 @@ SKIP_TF_TESTS=1 just test
 ### For Scaffolded Projects
 
 After scaffolding, implement your own tests by:
+
 1. Creating test files in `test/` directory
 2. Updating the `test` recipe in justfile to run your tests
 3. Tests will automatically run in CI/CD via existing workflows

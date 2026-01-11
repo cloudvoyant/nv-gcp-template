@@ -63,8 +63,12 @@ clean:
 # ==============================================================================
 
 [group('docker')]
-docker-build:
-    @COMPOSE_BAKE=true docker compose build
+docker-build TAG="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    IMAGE_VERSION="{{TAG}}"
+    IMAGE_VERSION="${IMAGE_VERSION:-${VERSION}}"
+    VERSION="${IMAGE_VERSION}" COMPOSE_BAKE=true docker compose build
 
 [group('docker')]
 docker-run:
@@ -76,24 +80,22 @@ docker-test:
 
 # Build and push Docker image to GCP Container Registry
 [group('ci')]
-docker-push TAG="{{VERSION}}": docker-build
+docker-push TAG="": (docker-build TAG)
     #!/usr/bin/env bash
     set -euo pipefail
     source ./scripts/utils.sh
 
-    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}"
-    LOCAL_IMAGE="${PROJECT}:{{TAG}}"
+    IMAGE_VERSION="{{TAG}}"
+    IMAGE_VERSION="${IMAGE_VERSION:-${VERSION}}"
+    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${IMAGE_VERSION}"
 
     log_info "Configuring Docker authentication for Artifact Registry..."
     gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
 
-    log_info "Pushing Docker image to GCP Container Registry..."
-    log_info "Local image: ${LOCAL_IMAGE}"
-    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:{{TAG}}"
-    docker tag "${LOCAL_IMAGE}" "${IMAGE_NAME}:latest"
-    docker push "${IMAGE_NAME}:{{TAG}}"
-    docker push "${IMAGE_NAME}:latest"
-    log_success "Image pushed: ${IMAGE_NAME}:{{TAG}}"
+    log_info "Pushing Docker image: ${IMAGE_NAME}"
+    VERSION="${IMAGE_VERSION}" docker-compose push runner
+
+    log_success "Image pushed: ${IMAGE_NAME}"
 
 # ==============================================================================
 # UTILITIES
@@ -364,24 +366,42 @@ upversion *ARGS:
 
 # Publish the project
 [group('ci')]
-publish: test build-prod
+publish TAG="": test build-prod
     #!/usr/bin/env bash
     set -euo pipefail
+    source ./scripts/utils.sh
 
     # Load environment variables
     if [ -f .envrc ]; then
         source .envrc
     fi
 
-    echo -e "{{INFO}}Publishing package $PROJECT@$VERSION{{NORMAL}}"
+    # Construct package version
+    PUBLISH_VERSION="{{TAG}}"
+    if [ -n "$PUBLISH_VERSION" ]; then
+        # Pre-release: use next version with RC tag (e.g., 1.2.4-rc.nv-29)
+        NEXT_VERSION=$(get_next_version)
+        if [ -z "$NEXT_VERSION" ]; then
+            log_error "Could not determine next version"
+            exit 1
+        fi
+        PUBLISH_VERSION="${NEXT_VERSION}-rc.${PUBLISH_VERSION}"
+        log_info "Publishing pre-release package: ${PROJECT}@${PUBLISH_VERSION}"
+    else
+        # Release: use version from version.txt
+        PUBLISH_VERSION="${VERSION}"
+        log_info "Publishing release package: ${PROJECT}@${PUBLISH_VERSION}"
+    fi
+
     gcloud artifacts generic upload \
         --project=$GCP_DEVOPS_PROJECT_ID \
         --location=$GCP_DEVOPS_PROJECT_REGION \
         --repository=$GCP_DEVOPS_REGISTRY_NAME \
         --package=$PROJECT \
-        --version=$VERSION \
+        --version=$PUBLISH_VERSION \
         --source=dist/artifact.txt
-    echo -e "{{SUCCESS}}Published.{{NORMAL}}"
+
+    log_success "Published: ${PROJECT}@${PUBLISH_VERSION}"
 
 # Deploy application after infrastructure is provisioned
 [group('ci')]

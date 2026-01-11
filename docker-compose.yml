@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
-    image: ${PROJECT:-app}:${VERSION:-latest}
+    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
     container_name: ${PROJECT:-app}-runner
     volumes:
       - .:/workspace
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # Use minimal base stage (fast build)
-    image: ${PROJECT:-app}:${VERSION:-latest}
+    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
     container_name: ${PROJECT:-app}-tester
     volumes:
       - .:/workspace
