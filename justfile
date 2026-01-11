@@ -93,7 +93,7 @@ docker-push TAG="": (docker-build TAG)
     gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
 
     log_info "Pushing Docker image: ${IMAGE_NAME}"
-    VERSION="${IMAGE_VERSION}" docker-compose push runner
+    VERSION="${IMAGE_VERSION}" docker compose push runner
 
     log_success "Image pushed: ${IMAGE_NAME}"
 
