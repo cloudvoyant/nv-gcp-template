@@ -366,7 +366,7 @@ upversion *ARGS:
 
 # Publish the project
 [group('ci')]
-publish TAG="": test build-prod
+publish TAG="":
     #!/usr/bin/env bash
     set -euo pipefail
     source ./scripts/utils.sh

@@ -74,11 +74,17 @@ jobs:
           echo "issue_id=${ISSUE_ID}" >> $GITHUB_OUTPUT
           echo "Preview workspace: ${ISSUE_ID}"
 
-      - name: Build and Push Docker Image
-        run: just docker-push ${{ steps.issue.outputs.issue_id }}
+      - name: Build production artifacts
+        if: steps.upversion.outputs.new_release_published == 'true'
+        run: just build-prod
 
       - name: Publish Pre-release Package
-        run: just publish ${{ steps.issue.outputs.issue_id }}
+        run: |
+          just build-prod
+          just publish ${{ steps.issue.outputs.issue_id }}
+
+      - name: Build and Push Docker Image
+        run: just docker-push ${{ steps.issue.outputs.issue_id }}
 
       - name: Terraform Plan
         env:
