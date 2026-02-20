@@ -400,7 +400,12 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
 # Build for production
 [group('ci')]
 build-prod:
-    pnpm --filter @{{PROJECT}}/web build
+    @mkdir -p dist
+    @echo "$PROJECT $VERSION - Replace with your build artifact" > dist/artifact.txt
+    @echo -e "{{SUCCESS}}Production artifact created: dist/artifact.txt{{NORMAL}}"
+    # App is built and deployed via Docker (just docker-build / just docker-push)
+    # Uncomment to also run pnpm build here if needed:
+    # pnpm --filter @$PROJECT/web build
 
 # Get service URL for a deployed environment
 get-url WORKSPACE="":
