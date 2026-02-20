@@ -17,7 +17,9 @@ Required dependencies (always installed):
 - bash (shell)
 - just (command runner)
 - direnv (environment management)
+- node/npm (for pnpm and semantic-release)
 - terraform (infrastructure as code)
+- pnpm (package manager for Node.js workspaces)
 
 Development tools (--dev):
 - docker (containerization)
@@ -345,7 +347,18 @@ install_node() {
         if command_exists apk; then
             sudo apk add --no-cache nodejs npm
         elif command_exists apt-get; then
-            sudo apt-get install -y --no-install-recommends nodejs npm
+            # Install Node.js 22 from NodeSource for Debian/Ubuntu
+            # (Ubuntu 22.04 default repos only have Node 12; NodeSource does its own apt-get update
+            # so this works even when apt package lists have been cleared)
+            log_info "Adding NodeSource repository for Node.js 22"
+            if ! command_exists curl; then
+                sudo apt-get install -y --no-install-recommends curl
+            fi
+            sudo mkdir -p /etc/apt/keyrings
+            curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+            echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends nodejs
         elif command_exists yum; then
             sudo yum install -y nodejs npm
         elif command_exists pacman; then
@@ -362,6 +375,42 @@ install_node() {
     esac
 
     log_success "Node.js installation completed"
+}
+
+# Install pnpm based on platform
+install_pnpm() {
+    log_info "Installing pnpm"
+
+    case $PLATFORM in
+    Mac|Linux)
+        # Prefer npm install if npm available (works in all shell types)
+        if command_exists npm; then
+            log_info "Installing pnpm via npm"
+            npm install -g pnpm@10 2>&1 | grep -v "npm WARN" || true
+        elif command_exists curl; then
+            log_info "Installing pnpm from official installer"
+            curl -fsSL https://get.pnpm.io/install.sh | bash -
+
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+
+            # Persist for GitHub Actions
+            if [ -n "${GITHUB_PATH:-}" ]; then
+                echo "$PNPM_HOME" >> "$GITHUB_PATH"
+                log_info "Added pnpm to GITHUB_PATH for CI persistence"
+            fi
+        else
+            log_error "npm or curl is required to install pnpm"
+            return 1
+        fi
+        ;;
+    *)
+        log_warn "Unsupported platform for automatic pnpm installation. Please install pnpm manually from https://pnpm.io"
+        return 1
+        ;;
+    esac
+
+    log_success "pnpm installation completed"
 }
 
 # Install gcloud based on platform
@@ -690,7 +739,7 @@ install_claudevoyant_plugin() {
 # Check and install dependencies
 check_dependencies() {
     log_info "Checking dependencies"
-    log_info "Required: bash, just, direnv, terraform"
+    log_info "Required: bash, just, direnv, node, terraform, pnpm"
 
     if [ "$INSTALL_DEV" = true ]; then
         log_info "Development tools: docker, node/npx, gcloud, shellcheck, shfmt, claude, claudevoyant plugin (will be installed)"
@@ -768,6 +817,21 @@ check_dependencies() {
         fi
     fi
 
+    # Check Node.js (REQUIRED - installed before Terraform to avoid apt conflicts on Debian/Ubuntu)
+    current=$((current + 1))
+    progress_step $current "Checking Node.js (required)"
+    if command_exists node && command_exists npm; then
+        log_success "Node.js is already installed: $(node --version)"
+    else
+        log_warn "Node.js not found"
+        if install_node; then
+            log_success "Node.js installed successfully"
+        else
+            log_error "Failed to install Node.js - visit https://nodejs.org to install manually and re-run setup"
+            failed_required=1
+        fi
+    fi
+
     # Check Terraform (REQUIRED)
     current=$((current + 1))
     progress_step $current "Checking Terraform (required)"
@@ -779,6 +843,21 @@ check_dependencies() {
             log_success "Terraform installed successfully"
         else
             log_error "Failed to install Terraform - visit https://www.terraform.io/downloads to install manually and re-run setup"
+            failed_required=1
+        fi
+    fi
+
+    # Check pnpm (REQUIRED)
+    current=$((current + 1))
+    progress_step $current "Checking pnpm (required)"
+    if command_exists pnpm; then
+        log_success "pnpm is already installed: $(pnpm --version)"
+    else
+        log_warn "pnpm not found"
+        if install_pnpm; then
+            log_success "pnpm installed successfully"
+        else
+            log_error "Failed to install pnpm - visit https://pnpm.io to install manually and re-run setup"
             failed_required=1
         fi
     fi

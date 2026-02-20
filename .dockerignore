@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+apps/*/build
+apps/*/.svelte-kit
+apps/*/.vinxi
+apps/*/.output
+apps/*/.tanstack
+apps/*/dist
+
+# Development
+.git
+.github
+.vscode
+*.log
+*.md
+!README.md
+
+# Environment
+.env
+.env.*
+
+# Caches
+.pnpm-store
+.npm
+.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.backup*

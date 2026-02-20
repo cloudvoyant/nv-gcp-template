@@ -1,0 +1,15 @@
+{
+  "name": "nv-gcp-template",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @nv-gcp-template/web dev",
+    "build": "pnpm --filter @nv-gcp-template/web build",
+    "check": "pnpm --filter @nv-gcp-template/web check"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.4.1",
+    "typescript": "^5.9.3"
+  }
+}

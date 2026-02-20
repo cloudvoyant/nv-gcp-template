@@ -431,9 +431,9 @@ if [ -f "$JUSTFILE" ]; then
     sed_inplace '/# TEMPLATE$/,$ {/# TEMPLATE$/d; d;}' "$JUSTFILE"
 
     # Replace test recipe body with placeholder
-    # Pattern: Find "test: build" line and replace next line with TODO
+    # Pattern: Find "test:" line (with or without dependencies) and replace next line with TODO
     awk '
-    /^test: build$/ {
+    /^test:/ {
         print $0
         getline
         print "    @echo -e \"{{WARN}}TODO: Implement test{{NORMAL}}\""
@@ -534,14 +534,14 @@ echo ""
 log_info "Next steps:"
 if [ "$CONFIGURE_GCP" = false ]; then
     echo "  1. Update .envrc with your GCP project configuration (replace PLACEHOLDER_* values)"
-    echo "  2. Edit justfile to implement build/test/publish recipes"
-    echo "  3. Add your source code to src/"
+    echo "  2. Run: just setup --dev to install all dependencies"
+    echo "  3. Start the web app: just dev"
     echo "  4. Configure GitHub organization secrets (see .github/workflows/)"
     echo "  5. Initialize git and commit: git init && git add . && git commit -m 'Initial commit'"
 else
     echo "  1. Review .envrc for any additional configuration"
-    echo "  2. Edit justfile to implement build/test/publish recipes"
-    echo "  3. Add your source code to src/"
+    echo "  2. Run: just setup --dev to install all dependencies"
+    echo "  3. Start the web app: just dev"
     echo "  4. Configure GitHub organization secrets (see .github/workflows/)"
     echo "  5. Initialize git and commit: git init && git add . && git commit -m 'Initial commit'"
 fi

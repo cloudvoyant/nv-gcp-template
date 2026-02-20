@@ -224,6 +224,38 @@ get_next_version() {
     return 0
 }
 
+# GCP UTILITIES ----------------------------------------------------------------
+
+# Check if gcloud is authenticated and tokens are valid
+check_gcloud_auth() {
+    local project_id="${1:-}"
+
+    # Check if gcloud is installed
+    if ! command_exists gcloud; then
+        log_error "gcloud CLI not found. Please install it first."
+        log_info "Visit: https://cloud.google.com/sdk/docs/install"
+        return 1
+    fi
+
+    # Try to get auth info (fails if not authenticated or tokens expired)
+    if ! gcloud auth print-access-token >/dev/null 2>&1; then
+        log_error "GCP authentication required or tokens expired"
+        log_info "Please run: gcloud auth login"
+        return 1
+    fi
+
+    # If project_id provided, verify access to it
+    if [ -n "$project_id" ]; then
+        if ! gcloud projects describe "$project_id" >/dev/null 2>&1; then
+            log_error "Cannot access GCP project: $project_id"
+            log_info "Verify you have permissions or run: gcloud auth login"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
 # TERRAFORM UTILITIES ----------------------------------------------------------
 
 # Extract issue ID from branch name (e.g., feature/PROJ-12345-description -> proj-12345)

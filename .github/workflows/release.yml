@@ -9,11 +9,16 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
+  deployments: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    outputs:
+      new_release_published: ${{ steps.upversion.outputs.new_release_published }}
+      new_release_version: ${{ steps.upversion.outputs.new_release_version }}
 
     steps:
       - name: Checkout code
@@ -32,15 +37,33 @@ jobs:
       - name: Create Terraform backend bucket
         run: just tf-create-backend
 
+      - name: Install dependencies
+        run: just install
+
       - name: Run tests
         run: just test
 
+      - name: Get current version
+        id: version_before
+        run: echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+
       - name: Create new version
-        id: upversion
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
         run: just upversion --ci
+
+      - name: Capture release outputs
+        id: upversion
+        run: |
+          NEW_VERSION=$(cat version.txt)
+          OLD_VERSION="${{ steps.version_before.outputs.version }}"
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            echo "new_release_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "new_release_published=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build production artifacts
         if: steps.upversion.outputs.new_release_published == 'true'
@@ -52,21 +75,6 @@ jobs:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: just publish
 
-      - name: Build and Push Docker Image
-        if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: just docker-push
-
-      - name: Deploy to Dev Environment
-        if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: |
-          just tf-plan dev
-          just tf-apply dev --auto-approve
-          just deploy dev
-
       - name: Create GitHub Release
         if: steps.upversion.outputs.new_release_published == 'true'
         uses: softprops/action-gh-release@v1
@@ -77,3 +85,68 @@ jobs:
             dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.new_release_version }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup GCP
+        uses: ./.github/actions/setup-gcp
+        with:
+          gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Force amd64 platform for Cloud Run
+        run: echo "DOCKER_DEFAULT_PLATFORM=linux/amd64" >> $GITHUB_ENV
+
+      - name: Build and Push Web App Docker Image
+        run: |
+          just docker-build web
+          just docker-login
+          just docker-push web
+
+      - name: Get Docker Image Name
+        id: docker_image
+        run: |
+          IMAGE_NAME=$(cat .nv/docker-image.txt)
+          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Dev Environment
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
+        run: |
+          just tf-plan dev
+          just tf-apply dev --auto-approve
+          just deploy dev
+
+      - name: Get Service URL
+        id: outputs
+        run: |
+          SERVICE_URL=$(just get-url dev)
+          echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+
+      - name: Create Deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: ${{ github.token }}
+          environment: dev
+          environment-url: ${{ steps.outputs.outputs.service_url }}
+
+      - name: Update Deployment Status
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ github.token }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+          environment-url: ${{ steps.outputs.outputs.service_url }}

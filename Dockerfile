@@ -67,14 +67,12 @@ WORKDIR /workspaces
 
 FROM base AS service
 
-# TODO: make minimal as needed
 COPY . .
 RUN just build
 
-USER node
+ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 
-# TODO: modify entrypoint as needed
-CMD ["just", "run"]
+CMD ["node", "apps/web/build/index.js"]
 

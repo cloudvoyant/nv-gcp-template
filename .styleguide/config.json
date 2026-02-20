@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "contextual": true,
+  "autoLearn": true,
+  "tokenBudget": {
+    "max": 1500,
+    "warn": 1000,
+    "target": 800
+  },
+  "learning": {
+    "enabled": true,
+    "confidenceThreshold": 0.75,
+    "minObservations": 3,
+    "autoApply": false
+  },
+  "contexts": {
+    "build": { "priority": "high", "autoDetect": ["justfile"] },
+    "shell": { "priority": "high", "autoDetect": ["*.sh", "*.bats"] },
+    "bash": { "priority": "high", "autoDetect": ["*.sh", "*.bats"] },
+    "git": { "priority": "critical", "autoDetect": ["git"] },
+    "docker": { "priority": "medium", "autoDetect": ["Dockerfile", "docker-compose.yml"] },
+    "terraform": { "priority": "medium", "autoDetect": ["*.tf", "infra/"] },
+    "infra": { "priority": "medium", "autoDetect": ["infra/", "*.tf"] },
+    "gcp": { "priority": "medium", "autoDetect": [".envrc", "gcloud"] },
+    "test": { "priority": "medium", "autoDetect": ["*.bats", "test/"] },
+    "docs": { "priority": "low", "autoDetect": ["*.md", "docs/"] },
+    "code": { "priority": "high", "autoDetect": ["*.sh", "*.tf"] },
+    "tools": { "priority": "high", "autoDetect": ["justfile"] }
+  }
+}

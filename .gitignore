@@ -101,6 +101,7 @@ test-results/
 !*.tfvars.example
 *.tfplan
 *.tfplan.*
+tfplan
 crash.log
 crash.*.log
 override.tf
@@ -118,3 +119,10 @@ override.tf.json
 .claude/todos.md
 .claude/review.md
 .claude/execution-log.md
+.spec/
+
+# Style guide learning data (personal observations, not team settings)
+.styleguide/patterns.json
+.styleguide/history.jsonl
+# Keep config (team settings)
+!.styleguide/config.json

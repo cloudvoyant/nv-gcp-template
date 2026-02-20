@@ -1,55 +1,27 @@
 services:
-  # Development service - for running the application
-  runner:
+  # Base image: full build environment with source and dependencies
+  base:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: base # Use minimal base stage (fast build)
-    image: ${PROJECT}-runner:${VERSION}
-    container_name: ${PROJECT:-app}-runner
-    volumes:
-      - .:/workspace
-    working_dir: /workspace
-    command: bash -c "just run"
-    stdin_open: true
-    tty: true
-    networks:
-      - app-network
+      dockerfile: dockerfiles/base.dockerfile
+    image: ${PROJECT}-base:local
 
-  # Test service - for running tests
-  tester:
+  # Web service: production-optimized for Cloud Run
+  web:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: base # Use minimal base stage (fast build)
-    image: ${PROJECT}-tester:${VERSION}
-    container_name: ${PROJECT:-app}-tester
-    volumes:
-      - .:/workspace
-    working_dir: /workspace
-    command: bash -c "just test"
-    networks:
-      - app-network
-
-  # Production service - optimized runtime for Cloud Run and production
-  service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: service # Use production stage
-    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${VERSION}
-    container_name: ${PROJECT:-app}-service
-    environment:
-      - PORT=8080
+      dockerfile: dockerfiles/web.dockerfile
+      args:
+        - PROJECT
+    image: ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-web:${VERSION:-latest}
+    depends_on:
+      - base
     ports:
       - "8080:8080"
-    networks:
-      - app-network
 
-volumes:
-  dev-cache:
-  test-cache:
-
-networks:
-  app-network:
-    driver: bridge
+  # Test runner: uses base image to run tests
+  tester:
+    image: ${PROJECT}-base:local
+    depends_on:
+      - base
+    command: ["just", "test"]

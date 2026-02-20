@@ -39,14 +39,31 @@ jobs:
         with:
           gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Force amd64 platform for Cloud Run
+        run: echo "DOCKER_DEFAULT_PLATFORM=linux/amd64" >> $GITHUB_ENV
+
+      - name: Build and Push Web App Docker Image
+        run: |
+          just docker-build web "v${{ inputs.version }}"
+          just docker-login
+          just docker-push web "v${{ inputs.version }}"
+
+      - name: Get Docker Image Name
+        id: docker_image
+        run: |
+          IMAGE_NAME=$(cat .nv/docker-image.txt)
+          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
       - name: Terraform Plan
         env:
           WORKSPACE: ${{ inputs.environment }}
+          TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
         run: just tf-plan "${WORKSPACE}"
 
       - name: Terraform Apply
         env:
           WORKSPACE: ${{ inputs.environment }}
+          TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
         run: just tf-apply "${WORKSPACE}" --auto-approve
 
       - name: Deploy Application

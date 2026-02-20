@@ -1,16 +1,15 @@
 {
   "build": {
-    "dockerfile": "../Dockerfile",
+    "dockerfile": "../dockerfiles/dev.dockerfile",
     "context": "..",
     "target": "dev"
   },
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
   "mounts": [
-    // Claude CLI credentials (cross-platform: HOME on Unix, USERPROFILE on Windows)
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
   ],
   "customizations": {
     "vscode": {

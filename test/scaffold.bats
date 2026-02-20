@@ -282,18 +282,8 @@ teardown() {
         --non-interactive \
         --project my_awesome_project
 
-    # Check PascalCase replacement in src files
-    run grep "class MyAwesomeProject" "$DEST_DIR/src/sample-code.txt"
-    [ "$status" -eq 0 ]
-
-    run grep "MyAwesomeProjectService" "$DEST_DIR/src/sample-code.txt"
-    [ "$status" -eq 0 ]
-
-    # Check camelCase replacement in src files
-    run grep "myAwesomeProjectConfig" "$DEST_DIR/src/sample-code.txt"
-    [ "$status" -eq 0 ]
-
-    run grep "myAwesomeProjectHelper" "$DEST_DIR/src/sample-code.txt"
+    # Check kebab-case replacement in SvelteKit route (contains the project name string)
+    run grep "my-awesome-project" "$DEST_DIR/apps/web/src/routes/+page.svelte"
     [ "$status" -eq 0 ]
 
     # Check README contains project name

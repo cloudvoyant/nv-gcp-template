@@ -5,7 +5,6 @@ set shell   := ["bash", "-c"]
 
 # Dependencies
 bash        := require("bash")
-direnv      := require("direnv")
 
 # Environment variables (auto-sourced from .envrc)
 export PROJECT                  := `source .envrc && echo $PROJECT`
@@ -24,6 +23,11 @@ WARN        := '\033[1;33m'
 ERROR       := '\033[0;31m'
 NORMAL      := '\033[0m'
 
+# Docker configuration
+DEFAULT_SERVICE := "web"
+SERVICE := env("SERVICE", DEFAULT_SERVICE)
+DOCKER_TAG := env("TAG", VERSION)
+
 # ==============================================================================
 # CORE DEVELOPMENT
 # ==============================================================================
@@ -35,79 +39,95 @@ _default:
 # Install dependencies
 [group('dev')]
 install:
-    @echo -e "{{WARN}}TODO: Implement install{{NORMAL}}"
+    pnpm install
+
+# Run project locally (dev server)
+[group('dev')]
+dev:
+    pnpm --filter @{{PROJECT}}/web dev
 
 # Build the project
 [group('dev')]
 build:
-    @echo -e "{{WARN}}TODO: Implement build for $_PROJECT@$VERSION{{NORMAL}}"
+    pnpm --filter @{{PROJECT}}/web build
 
-# Run project locally
+# Run project locally (production server using built output)
 [group('dev')]
-run: build
-    @echo -e "{{WARN}}TODO: Implement run{{NORMAL}}"
+run:
+    node apps/web/build/index.js
 
 # Run tests
 [group('dev')]
-test: build
+test:
+    pnpm --filter @{{PROJECT}}/web check
     @just test-template
 
 # Clean build artifacts
 [group('dev')]
 clean:
     @rm -rf .nv
-    @echo -e "{{WARN}}TODO: Implement clean{{NORMAL}}"
+    @rm -rf apps/web/build
+    @rm -rf apps/web/.svelte-kit
+    @echo -e "{{WARN}}Cleaned build artifacts{{NORMAL}}"
 
 # ==============================================================================
 # DOCKER
 # ==============================================================================
 
+# Authenticate Docker with GCP Artifact Registry
 [group('docker')]
-docker-build TAG="":
+docker-login:
+    @echo -e "{{INFO}}Configuring Docker authentication for Artifact Registry...{{NORMAL}}"
+    gcloud auth configure-docker {{GCP_DEVOPS_PROJECT_REGION}}-docker.pkg.dev --quiet
+    @echo -e "{{SUCCESS}}Docker authenticated{{NORMAL}}"
+
+# List available Docker services
+[group('docker')]
+docker-services:
+    @echo -e "{{INFO}}Available services:{{NORMAL}}"
+    @echo "  - web (default)"
+    @echo ""
+    @echo "Usage: just docker-build [SERVICE] [TAG]"
+    @echo "Example: just docker-build web 1.0.0"
+
+# Build Docker image (builds base first, then the specified service)
+[group('docker')]
+docker-build SERVICE=DEFAULT_SERVICE TAG="":
     #!/usr/bin/env bash
     set -euo pipefail
-    IMAGE_VERSION="{{TAG}}"
-    # If TAG is provided, append commit hash for uniqueness
-    if [ -n "$IMAGE_VERSION" ]; then
-        COMMIT_HASH=$(git rev-parse --short HEAD)
-        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
-    else
-        IMAGE_VERSION="${VERSION}"
-    fi
-    VERSION="${IMAGE_VERSION}" COMPOSE_BAKE=true docker compose build service
+    ACTUAL_TAG="{{ if TAG != "" { TAG } else { VERSION } }}"
+    echo -e "{{INFO}}Building base image...{{NORMAL}}"
+    docker compose build base
+    echo -e "{{INFO}}Building {{SERVICE}} image (tag: ${ACTUAL_TAG})...{{NORMAL}}"
+    VERSION="${ACTUAL_TAG}" docker compose build {{SERVICE}}
+    echo -e "{{SUCCESS}}Docker image built{{NORMAL}}"
 
 [group('docker')]
-docker-run:
-    @docker compose run --rm runner
+docker-run SERVICE=DEFAULT_SERVICE:
+    @docker compose up {{SERVICE}}
 
 [group('docker')]
 docker-test:
     @docker compose run --rm tester
 
-# Build and push Docker image to GCP Container Registry
+# Build and push Docker image to GCP Artifact Registry
 [group('ci')]
-docker-push TAG="": (docker-build TAG)
+docker-push SERVICE=DEFAULT_SERVICE TAG="":
     #!/usr/bin/env bash
     set -euo pipefail
     source ./scripts/utils.sh
 
-    IMAGE_VERSION="{{TAG}}"
-    # If TAG is provided, append commit hash for uniqueness (must match docker-build)
-    if [ -n "$IMAGE_VERSION" ]; then
-        COMMIT_HASH=$(git rev-parse --short HEAD)
-        IMAGE_VERSION="${IMAGE_VERSION}-${COMMIT_HASH}"
-    else
-        IMAGE_VERSION="${VERSION}"
-    fi
-    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${IMAGE_VERSION}"
+    ACTUAL_TAG="{{ if TAG != "" { TAG } else { VERSION } }}"
+    IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-{{SERVICE}}:${ACTUAL_TAG}"
 
-    log_info "Configuring Docker authentication for Artifact Registry..."
-    gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
+    echo -e "{{INFO}}Building and pushing {{SERVICE}} (tag: ${ACTUAL_TAG})...{{NORMAL}}"
+    docker compose build base
+    VERSION="${ACTUAL_TAG}" docker compose build {{SERVICE}}
+    VERSION="${ACTUAL_TAG}" docker compose push {{SERVICE}}
 
-    log_info "Pushing Docker image: ${IMAGE_NAME}"
-    VERSION="${IMAGE_VERSION}" docker compose push service
-
-    log_success "Image pushed: ${IMAGE_NAME}"
+    mkdir -p .nv
+    echo "${IMAGE_NAME}" > .nv/docker-image.txt
+    echo -e "{{SUCCESS}}Docker image pushed: ${IMAGE_NAME}{{NORMAL}}"
 
 # ==============================================================================
 # UTILITIES
@@ -121,22 +141,22 @@ setup *ARGS:
 # Format code
 [group('utils')]
 format *PATHS:
-    @echo -e "{{WARN}}TODO: Implement formatting{{NORMAL}}"
+    pnpm prettier --write ${PATHS:-.}
 
 # Check code formatting (CI mode)
 [group('utils')]
 format-check *PATHS:
-    @echo -e "{{WARN}}TODO: Implement format checking{{NORMAL}}"
+    pnpm prettier --check ${PATHS:-.}
 
-# Lint code
+# Lint code (type check)
 [group('utils')]
 lint *PATHS:
-    @echo -e "{{WARN}}TODO: Implement linting{{NORMAL}}"
+    pnpm --filter @{{PROJECT}}/web check
 
 # Lint and auto-fix issues
 [group('utils')]
 lint-fix *PATHS:
-    @echo -e "{{WARN}}TODO: Implement lint auto-fixing{{NORMAL}}"
+    pnpm prettier --write ${PATHS:-.}
 
 # Upgrade to newer template version (requires Claude Code)
 [group('utils')]
@@ -285,12 +305,20 @@ tf-plan WORKSPACE="": (tf-init WORKSPACE)
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
+    # Use TF_VAR_app_image if set by CI (docker push step). Leave empty otherwise
+    # so Cloud Run is not deployed without a valid image.
+    APP_IMAGE="${TF_VAR_app_image:-}"
+
     cd infra/environments
     terraform plan \
         -var="project=${PROJECT}" \
         -var="gcp_project_id=${GCP_PROJECT_ID}" \
         -var="gcp_region=${GCP_REGION}" \
         -var="environment_name=${WORKSPACE_NAME}" \
+        -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+        -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+        -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+        -var="app_image=${APP_IMAGE}" \
         -out=tfplan
 
 # Apply Terraform changes
@@ -303,6 +331,10 @@ tf-apply WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
+    # Use TF_VAR_app_image if set by CI (docker push step). Leave empty otherwise
+    # so Cloud Run is not deployed without a valid image.
+    APP_IMAGE="${TF_VAR_app_image:-}"
+
     cd infra/environments
 
     if [ "{{AUTO_APPROVE}}" = "--auto-approve" ]; then
@@ -310,13 +342,21 @@ tf-apply WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
             -var="project=${PROJECT}" \
             -var="gcp_project_id=${GCP_PROJECT_ID}" \
             -var="gcp_region=${GCP_REGION}" \
-            -var="environment_name=${WORKSPACE_NAME}"
+            -var="environment_name=${WORKSPACE_NAME}" \
+            -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+            -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+            -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+            -var="app_image=${APP_IMAGE}"
     else
         terraform apply \
             -var="project=${PROJECT}" \
             -var="gcp_project_id=${GCP_PROJECT_ID}" \
             -var="gcp_region=${GCP_REGION}" \
-            -var="environment_name=${WORKSPACE_NAME}"
+            -var="environment_name=${WORKSPACE_NAME}" \
+            -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+            -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+            -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+            -var="app_image=${APP_IMAGE}"
     fi
 
 # Destroy Terraform-managed infrastructure
@@ -328,6 +368,9 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
 
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+
+    # Use TF_VAR_app_image if set, otherwise empty (Cloud Run not provisioned without an image)
+    APP_IMAGE="${TF_VAR_app_image:-}"
 
     log_warn "WARNING: This will destroy all infrastructure in workspace: ${WORKSPACE_NAME}"
 
@@ -344,6 +387,10 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
         -var="gcp_project_id=${GCP_PROJECT_ID}" \
         -var="gcp_region=${GCP_REGION}" \
         -var="environment_name=${WORKSPACE_NAME}" \
+        -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+        -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+        -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+        -var="app_image=${APP_IMAGE}" \
         $([ "{{AUTO_APPROVE}}" = "--auto-approve" ] && echo "-auto-approve" || echo "")
 
 # ==============================================================================
@@ -353,13 +400,43 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
 # Build for production
 [group('ci')]
 build-prod:
-    @mkdir -p dist
-    @echo "$PROJECT $VERSION - Replace with your build artifact" > dist/artifact.txt
-    @echo -e "{{SUCCESS}}Production artifact created: dist/artifact.txt{{NORMAL}}"
-    # Cross-platform build examples (uncomment and adapt as needed):
-    # For Go: GOOS=linux GOARCH=amd64 go build -o dist/$PROJECT-linux-amd64
-    # For Rust: cross build --target x86_64-unknown-linux-gnu --release
-    # For Zig: zig build -Dtarget=x86_64-linux -Doptimize=ReleaseSafe
+    pnpm --filter @{{PROJECT}}/web build
+
+# Get service URL for a deployed environment
+get-url WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+    cd infra/environments
+    terraform workspace select "${WORKSPACE_NAME}" >/dev/null 2>&1
+    terraform output -raw app_public_url
+
+# Force Cloud Run to redeploy current image (useful when image tag unchanged)
+force-redeploy WORKSPACE="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/utils.sh
+    WORKSPACE_NAME="{{WORKSPACE}}"
+    WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+
+    if [ "$WORKSPACE_NAME" = "prod" ]; then
+        SERVICE_NAME="${PROJECT}-prod"
+    else
+        SERVICE_NAME="${PROJECT}-${WORKSPACE_NAME}"
+    fi
+
+    CURRENT_IMAGE=$(gcloud run services describe "${SERVICE_NAME}" \
+        --project="${GCP_PROJECT_ID}" \
+        --region="${GCP_REGION}" \
+        --format="value(spec.template.spec.containers[0].image)")
+
+    gcloud run services update "${SERVICE_NAME}" \
+        --image="${CURRENT_IMAGE}" \
+        --region="${GCP_REGION}" \
+        --project="${GCP_PROJECT_ID}"
+    log_success "Service redeployed successfully"
 
 # Get current version
 [group('ci')]
@@ -374,7 +451,7 @@ version-next:
 # Create new version based on commits (semantic-release)
 [group('ci')]
 upversion *ARGS:
-    @bash -c scripts/upversion.sh {{ARGS}}
+    @bash scripts/upversion.sh {{ARGS}}
 
 # Publish the project
 [group('ci')]
@@ -431,16 +508,16 @@ deploy WORKSPACE="":
     # Example: kubectl apply -f k8s/ --context=${WORKSPACE_NAME}
 
 # ==============================================================================
-# VS CODE
+# VS Code and Zed
 # ==============================================================================
 
-# Hide non-essential files in VS Code
-[group('vscode')]
+# Hide non-essential files in VS Code / Zed
+[group('utils')]
 hide:
     @bash scripts/toggle-files.sh hide
 
-# Show all files in VS Code
-[group('vscode')]
+# Show all files in VS Code / Zed
+[group('utils')]
 show:
     @bash scripts/toggle-files.sh show
 
