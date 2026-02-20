@@ -1,3 +1,13 @@
+## [1.2.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.2...v1.2.3) (2026-02-20)
+
+### Bug Fixes
+
+* configure git auth before semantic-release to fix tag push
+
+Sets the git remote URL with GITHUB_TOKEN credentials so that
+semantic-release's internal `git push --tags` uses authenticated
+HTTPS instead of relying on the credential helper set by checkout.
+
 ## [1.2.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.1...v1.2.2) (2026-02-20)
 
 ### Bug Fixes
