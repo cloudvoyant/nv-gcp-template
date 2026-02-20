@@ -1,3 +1,14 @@
+## [1.2.5](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.4...v1.2.5) (2026-02-20)
+
+### Bug Fixes
+
+* upload release assets via semantic-release instead of gh cli
+
+GitHub marks releases immutable after publishing, preventing
+gh release upload from adding assets. Instead, build dist/ before
+running semantic-release so @semantic-release/github uploads dist/*
+atomically when creating the release.
+
 ## [1.2.4](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.3...v1.2.4) (2026-02-20)
 
 ### Bug Fixes
