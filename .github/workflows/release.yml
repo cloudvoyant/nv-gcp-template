@@ -47,6 +47,12 @@ jobs:
         id: version_before
         run: echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
 
+      - name: Configure git for semantic-release
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git config user.email "semantic-release-bot@martynus.net"
+          git config user.name "semantic-release-bot"
+
       - name: Create new version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
