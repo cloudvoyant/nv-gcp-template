@@ -43,6 +43,9 @@ jobs:
       - name: Run tests
         run: just test
 
+      - name: Build production artifacts
+        run: just build-prod
+
       - name: Get current version
         id: version_before
         run: echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
@@ -71,21 +74,11 @@ jobs:
             echo "new_release_published=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build production artifacts
-        if: steps.upversion.outputs.new_release_published == 'true'
-        run: just build-prod
-
       - name: Publish package
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: just publish
-
-      - name: Upload Release Assets
-        if: steps.upversion.outputs.new_release_published == 'true'
-        run: gh release upload v${{ steps.upversion.outputs.new_release_version }} dist/* --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     runs-on: ubuntu-latest
