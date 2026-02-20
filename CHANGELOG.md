@@ -1,3 +1,12 @@
+## [1.2.4](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.3...v1.2.4) (2026-02-20)
+
+### Bug Fixes
+
+* use dist/* glob for release asset upload
+
+dist/**/* requires globstar and doesn't match files directly in
+dist/ without it. Using dist/* correctly matches dist/artifact.txt.
+
 ## [1.2.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.2...v1.2.3) (2026-02-20)
 
 ### Bug Fixes
