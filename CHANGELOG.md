@@ -1,3 +1,21 @@
+## [1.2.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.2...v1.2.0) (2026-02-20)
+
+### Features
+
+* adopt readership improvements into template
+
+- CI/CD: concurrency, deployment tracking, split docker steps,
+  release/deploy job split, amd64 platform
+- Justfile: SERVICE abstraction, docker-login, get-url,
+  force-redeploy, TF devops vars, pnpm recipes
+- Docker: dockerfiles/ split (base/web/dev), apt HTTPS workaround,
+  .dockerignore, github-cli devcontainer
+- Infra: nv-fullstack-app module (Cloud Run + Firestore + IAM),
+  enriched environment variables and outputs
+- Scripts: check_gcloud_auth, pnpm as required dep, NodeSource
+  for Node.js 22 in install_node
+- App: minimal SvelteKit workspace (apps/web) with health endpoint
+
 ## [1.1.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.1...v1.1.2) (2026-01-11)
 
 ### Bug Fixes
