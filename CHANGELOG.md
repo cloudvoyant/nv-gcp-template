@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.0...v1.2.1) (2026-02-20)
+
+### Bug Fixes
+
+* restore build-prod stub for Artifact Registry publish step
+
 ## [1.2.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.2...v1.2.0) (2026-02-20)
 
 ### Features
