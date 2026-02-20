@@ -1,3 +1,14 @@
+## [1.2.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.1...v1.2.2) (2026-02-20)
+
+### Bug Fixes
+
+* replace softprops release action with gh release upload
+
+softprops/action-gh-release@v1 fails with "Cannot upload assets to
+an immutable release" because @semantic-release/github already
+publishes the GitHub release. Use gh release upload instead to
+attach dist artifacts to the pre-existing release.
+
 ## [1.2.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.0...v1.2.1) (2026-02-20)
 
 ### Bug Fixes
