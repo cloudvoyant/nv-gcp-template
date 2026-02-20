@@ -75,14 +75,9 @@ jobs:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: just publish
 
-      - name: Create GitHub Release
+      - name: Upload Release Assets
         if: steps.upversion.outputs.new_release_published == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.upversion.outputs.new_release_version }}
-          generate_release_notes: true
-          files: |
-            dist/**/*
+        run: gh release upload v${{ steps.upversion.outputs.new_release_version }} dist/**/* --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
