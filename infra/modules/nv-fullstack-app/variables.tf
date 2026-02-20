@@ -31,9 +31,9 @@ variable "commit_sha" {
 }
 
 variable "base_domain" {
-  description = "Base domain for auto-generated subdomains (e.g., 'example.io')"
+  description = "Base domain for auto-generated subdomains (e.g., 'cloudvoyant.io')"
   type        = string
-  default     = "example.io"
+  default     = "cloudvoyant.io"
 }
 
 variable "custom_domain" {

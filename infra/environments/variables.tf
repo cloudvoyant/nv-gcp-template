@@ -48,7 +48,7 @@ variable "gcp_devops_project_region" {
 variable "base_domain" {
   description = "Base domain for all environments"
   type        = string
-  default     = "example.io"
+  default     = "cloudvoyant.io"
 }
 
 variable "prod_domain" {
