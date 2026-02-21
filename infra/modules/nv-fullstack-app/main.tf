@@ -10,7 +10,7 @@ locals {
   is_preview = !contains(["dev", "stage", "prod"], var.environment_name)
 
   domain = var.custom_domain != "" ? var.custom_domain : (
-    local.is_prod ? var.base_domain : "${var.environment_name}.${var.base_domain}"
+    local.is_prod ? var.base_domain : "${var.project}.${var.environment_name}.${var.base_domain}"
   )
 
   labels = {
