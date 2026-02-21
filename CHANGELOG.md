@@ -1,3 +1,14 @@
+## [1.2.7](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.6...v1.2.7) (2026-02-21)
+
+### Bug Fixes
+
+* include project name in non-prod domain pattern
+
+Without the project name, all projects using this template would
+compete for the same subdomain (e.g., dev.cloudvoyant.io), causing
+domain mapping authorization failures. Matches readership's pattern:
+project.env.base_domain.
+
 ## [1.2.6](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.5...v1.2.6) (2026-02-20)
 
 ### Bug Fixes
