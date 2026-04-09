@@ -271,8 +271,8 @@ just test-e2e stage
 2. Import the authenticated context at the top of the file:
 
 ```ts
-import { test, expect } from '@playwright/test';
-test.use({ storageState: 'e2e/.auth/p1.json' });
+import { test, expect } from "@playwright/test";
+test.use({ storageState: "e2e/.auth/p1.json" });
 ```
 
 3. Prefix any filenames created during the test with `[E2E]` so teardown cleans them up
@@ -291,11 +291,11 @@ pnpm dev
 
 ### Environment Files
 
-| File | Purpose | Committed? |
-|------|---------|------------|
-| `.envrc` | Non-secret environment config (project IDs, region) | Yes |
-| `apps/web/.env.local` | Local secrets (Kinde credentials) | No |
-| `apps/web/.env.e2e.local` | E2E test config (test user email) | No |
+| File                      | Purpose                                             | Committed? |
+| ------------------------- | --------------------------------------------------- | ---------- |
+| `.envrc`                  | Non-secret environment config (project IDs, region) | Yes        |
+| `apps/web/.env.local`     | Local secrets (Kinde credentials)                   | No         |
+| `apps/web/.env.e2e.local` | E2E test config (test user email)                   | No         |
 
 ### Running Tests
 

@@ -202,11 +202,11 @@ just test-e2e
 Example test file:
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.use({ storageState: 'e2e/.auth/p1.json' });
+test.use({ storageState: "e2e/.auth/p1.json" });
 
-test('user can upload an image', async ({ page }) => {
+test("user can upload an image", async ({ page }) => {
   // ...
 });
 ```

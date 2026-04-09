@@ -19,9 +19,7 @@ async function teardownE2e() {
   const userId = process.env.E2E_P1_USER_ID;
 
   if (!projectId || !userId) {
-    console.log(
-      "Skipping teardown: GCP_PROJECT_ID or E2E_P1_USER_ID not set",
-    );
+    console.log("Skipping teardown: GCP_PROJECT_ID or E2E_P1_USER_ID not set");
     return;
   }
 

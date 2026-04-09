@@ -22,13 +22,13 @@ Two Terraform roots handle different lifecycles:
 
 Workspaces map directly to environments:
 
-| Branch Pattern       | Workspace     | Lifecycle                                |
-| -------------------- | ------------- | ---------------------------------------- |
-| `feature/PROJ-NNN-*` | `proj-nnn`    | Created on push, destroyed on merge      |
-| `bugfix/BUG-NNN-*`   | `bug-nnn`     | Created on push, destroyed on merge      |
-| `main`               | `dev`         | Updated automatically on merge           |
-| Tag via dispatch     | `stage`       | Manual deploy with approval gate         |
-| Approved stage       | `prod`        | Manual deploy after approval             |
+| Branch Pattern       | Workspace  | Lifecycle                           |
+| -------------------- | ---------- | ----------------------------------- |
+| `feature/PROJ-NNN-*` | `proj-nnn` | Created on push, destroyed on merge |
+| `bugfix/BUG-NNN-*`   | `bug-nnn`  | Created on push, destroyed on merge |
+| `main`               | `dev`      | Updated automatically on merge      |
+| Tag via dispatch     | `stage`    | Manual deploy with approval gate    |
+| Approved stage       | `prod`     | Manual deploy after approval        |
 
 Terraform state is stored in a shared GCS backend in the DevOps project. The path structure is:
 
@@ -125,11 +125,11 @@ Example: the uploads collection requires a composite index on `(userId ASC, file
 
 ### Monorepo Package Boundaries
 
-| Package          | Boundary     | Notes                                                            |
-| ---------------- | ------------ | ---------------------------------------------------------------- |
-| `libs/auth`      | Server-only  | Never import in any code that runs in the browser               |
-| `libs/storage`   | Mixed        | `client.ts`, `resize.ts` — browser-safe; `operations.ts` — server-only |
-| `libs/ui`        | Browser-only | Svelte components; Tailwind must scan `libs/ui/src/**`           |
+| Package        | Boundary     | Notes                                                                  |
+| -------------- | ------------ | ---------------------------------------------------------------------- |
+| `libs/auth`    | Server-only  | Never import in any code that runs in the browser                      |
+| `libs/storage` | Mixed        | `client.ts`, `resize.ts` — browser-safe; `operations.ts` — server-only |
+| `libs/ui`      | Browser-only | Svelte components; Tailwind must scan `libs/ui/src/**`                 |
 
 Always import by package name (`@nv-gcp-template/auth`), not by relative path, to make boundary violations obvious in code review.
 
@@ -138,11 +138,13 @@ Always import by package name (`@nv-gcp-template/auth`), not by relative path, t
 Playwright tests live in `apps/web/e2e/`. The global setup and teardown hooks handle credential and state management so individual tests stay focused on behavior.
 
 **Global setup:**
+
 1. Runs `just fetch-e2e-secrets` if `apps/web/.env.e2e.local` is missing.
 2. Executes a pre-run cleanup pass to remove leftover `[E2E]`-tagged data from previous runs.
 3. Performs a P1 (primary test user) login via the Kinde auth flow and saves browser auth state for reuse across tests.
 
 **Global teardown:**
+
 - Runs `scripts/teardown-e2e.ts`, which queries Firestore for all records tagged `[E2E]` and deletes them, keeping the test environment clean.
 
 `just test-e2e` orchestrates the full sequence: fetches secrets if missing, injects the workspace-specific `GCP_PROJECT_ID` and region, and invokes Playwright.

@@ -11,7 +11,11 @@
   </div>
   {#if data.uploads.length === 0}
     <p class="text-muted-foreground">
-      No uploads yet. <Button variant="link" href="/uploads/new" class="p-0 h-auto">Upload your first image.</Button>
+      No uploads yet. <Button
+        variant="link"
+        href="/uploads/new"
+        class="p-0 h-auto">Upload your first image.</Button
+      >
     </p>
   {:else}
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">

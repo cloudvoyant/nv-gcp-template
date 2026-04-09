@@ -2,7 +2,10 @@
   import type { PageData } from "./$types";
   import { resizeImageToVariants } from "@nv-gcp-template/storage/resize";
   import { Button } from "@nv-gcp-template/ui/components/button";
-  import { Root as FileDropZone, Trigger as FileDropZoneTrigger } from "@nv-gcp-template/ui/components/file-drop-zone";
+  import {
+    Root as FileDropZone,
+    Trigger as FileDropZoneTrigger,
+  } from "@nv-gcp-template/ui/components/file-drop-zone";
 
   let { data }: { data: PageData } = $props();
   let files = $state<File[]>([]);
@@ -85,19 +88,27 @@
     <FileDropZone
       accept=".jpg,.jpeg,.png,.gif,.webp,.avif"
       disabled={uploading}
-      onUpload={async (uploaded) => { files = uploaded; }}
+      onUpload={async (uploaded) => {
+        files = uploaded;
+      }}
     >
       <FileDropZoneTrigger />
     </FileDropZone>
     {#if files.length > 0}
       <div class="flex items-center gap-2">
         {#if previewUrl}
-          <img src={previewUrl} alt="Preview" class="h-10 w-10 shrink-0 rounded object-cover border" />
+          <img
+            src={previewUrl}
+            alt="Preview"
+            class="h-10 w-10 shrink-0 rounded object-cover border"
+          />
         {/if}
         <p class="text-muted-foreground truncate text-sm">{files[0].name}</p>
       </div>
     {/if}
-    <Button type="submit" disabled={uploading} class="w-full">{uploading ? progress : "Upload"}</Button>
-{#if uploadError}<p class="text-red-600">{uploadError}</p>{/if}
+    <Button type="submit" disabled={uploading} class="w-full"
+      >{uploading ? progress : "Upload"}</Button
+    >
+    {#if uploadError}<p class="text-red-600">{uploadError}</p>{/if}
   </form>
 </div>
