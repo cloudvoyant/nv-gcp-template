@@ -29,7 +29,7 @@ normalise_key() {
   while IFS= read -r line; do
     # Skip blank lines and comments
     [[ -z "$line" || "$line" == \#* ]] && continue
-    if [[ "$line" == *"="* ]]; then
+    if [[ "$line" == *"="* && "$line" != *":"* ]] || [[ "$line" == *"="* && "${line%%=*}" != *":"* ]]; then
       raw_key="${line%%=*}"
       val="${line#*=}"
     elif [[ "$line" == *":"* ]]; then
@@ -39,6 +39,16 @@ normalise_key() {
     else
       continue
     fi
+    # Strip surrounding quotes and whitespace from key and value
+    raw_key="${raw_key//\"/}"
+    raw_key="${raw_key//\'/}"
+    raw_key="${raw_key#"${raw_key%%[![:space:]]*}"}"
+    raw_key="${raw_key%"${raw_key##*[![:space:]]}"}"
+    val="${val//\"/}"
+    val="${val//\'/}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+    [[ -z "$raw_key" ]] && continue
     echo "$(normalise_key "$raw_key")=${val}"
   done <<< "${RAW}"
 } > "${OUTPUT}"
