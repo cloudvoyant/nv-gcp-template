@@ -200,5 +200,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-preview
-          path: apps/web/playwright-report/
+          path: |
+            apps/web/playwright-report/
+            apps/web/e2e/.auth/kinde-login-debug.png
           retention-days: 7
