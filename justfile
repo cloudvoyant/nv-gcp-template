@@ -777,11 +777,6 @@ test-e2e WORKSPACE="local":
 
     log_info "Running E2E tests against: ${BASE_URL}"
 
-    # Export all KEY=VALUE lines from .env.e2e.local without glob expansion
-    while IFS='=' read -r key value; do
-      [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] && export "$key"="$value"
-    done < <(grep -E '^[A-Z_][A-Z0-9_]*=' apps/web/.env.e2e.local)
-
     # Install Playwright browser if missing
     pnpm --filter @nv-gcp-template/web exec playwright install chromium --with-deps 2>/dev/null || true
 
