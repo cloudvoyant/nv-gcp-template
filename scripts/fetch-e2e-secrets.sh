@@ -44,3 +44,13 @@ normalise_key() {
 } > "${OUTPUT}"
 
 echo "Secrets written to ${OUTPUT}"
+
+# Validate that E2E_P1_PASSWORD was written — fail loudly if not, to surface issues early
+if ! grep -q "^E2E_P1_PASSWORD=" "${OUTPUT}"; then
+  echo "ERROR: E2E_P1_PASSWORD not found after normalisation." >&2
+  echo "Keys found in secret:" >&2
+  grep -v "^#" "${OUTPUT}" | cut -d= -f1 >&2 || true
+  echo "Raw secret lines (first 5):" >&2
+  echo "${RAW}" | head -5 | sed 's/=.*/=***/' | sed 's/:.*/: ***/' >&2
+  exit 1
+fi
