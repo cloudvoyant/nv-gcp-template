@@ -777,6 +777,11 @@ test-e2e WORKSPACE="local":
 
     log_info "Running E2E tests against: ${BASE_URL}"
 
+    # Export all vars from .env.e2e.local (credentials + GCP vars) into the environment
+    set -a
+    source apps/web/.env.e2e.local
+    set +a
+
     # Install Playwright browser if missing
     pnpm --filter @nv-gcp-template/web exec playwright install chromium --with-deps 2>/dev/null || true
 
