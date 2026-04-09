@@ -126,3 +126,17 @@ override.tf.json
 .styleguide/history.jsonl
 # Keep config (team settings)
 !.styleguide/config.json
+
+# Playwright
+e2e/.auth/
+playwright-report/
+test-results/
+.env.e2e.local
+
+# codevoyant
+.codevoyant/
+
+# claude
+.claude/
+!.claude/skills/
+apps/web/e2e/.auth/storageState.json

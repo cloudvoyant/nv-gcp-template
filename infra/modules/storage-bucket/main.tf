@@ -11,4 +11,12 @@ resource "google_storage_bucket" "bucket" {
     environment = var.environment_name
     managed_by  = "terraform"
   }
+
+  # CORS configuration for direct browser uploads via signed URLs
+  cors {
+    origin          = ["*"]
+    method          = ["PUT"]
+    response_header = ["Content-Type"]
+    max_age_seconds = 3600
+  }
 }

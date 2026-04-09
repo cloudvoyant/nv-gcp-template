@@ -1,6 +1,24 @@
-# nv-fullstack-app Terraform Module
+# nv-fullstack-app Module
 
-A complete GCP fullstack application module providing Cloud Run, Firestore, domain mapping, and IAM configuration.
+Provisions a complete SvelteKit application stack on GCP: Firestore database, Cloud Run service,
+and a service account with the necessary IAM roles.
+
+## Design
+
+Everything a SvelteKit app needs in one module: database, compute, and identity. The service
+account is created with minimal permissions (Firestore user, Artifact Registry reader) and can be
+extended via external IAM grants.
+
+Cloud Run is conditionally created — if `image` is not provided the module creates only Firestore
+and the service account. This supports the Phase 1 scenario where infra exists before the first
+Docker image is built.
+
+## Key Behaviours
+
+- **Firestore**: Named `(default)` for `prod`, `{project}-{env}` for all others
+- **Domain mapping**: Only enabled for `dev`, `stage`, `prod` — not preview workspaces
+- **Scaling**: Prod gets 2 vCPU / 1Gi; all others get 1 vCPU / 512Mi
+- **Min instances**: 0 (cold starts on preview) — tune in `infra/environments/main.tf` for prod
 
 ## Features
 
@@ -50,41 +68,41 @@ module "fullstack_app" {
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|----------|
-| project | Project name for resource naming | string | — | yes |
-| gcp_project_id | GCP project ID | string | — | yes |
-| gcp_region | GCP region | string | us-central1 | no |
-| environment_name | Environment (dev/stage/prod/preview-id) | string | — | yes |
-| image | Container image URL | string | — | yes |
-| commit_sha | Git commit SHA for forced redeployment | string | "" | no |
-| base_domain | Base domain for subdomains | string | example.io | no |
-| custom_domain | Custom domain override | string | "" | no |
-| env_vars | App environment variables | map(string) | {} | no |
-| cpu | CPU allocation | string | 1 | no |
-| memory | Memory allocation | string | 512Mi | no |
-| min_instances | Minimum instances | number | 0 | no |
-| max_instances | Maximum instances | number | 10 | no |
-| timeout | Request timeout (seconds) | number | 300 | no |
-| gcp_devops_project_id | DevOps project with Docker registry | string | — | yes |
-| docker_registry_name | Artifact Registry repository name | string | — | yes |
-| docker_registry_region | Artifact Registry region | string | — | yes |
-| enable_public_access | Allow public unauthenticated access | bool | true | no |
-| enable_domain_mapping | Enable custom domain mapping | bool | false | no |
+| Name                   | Description                             | Type        | Default     | Required |
+| ---------------------- | --------------------------------------- | ----------- | ----------- | -------- |
+| project                | Project name for resource naming        | string      | —           | yes      |
+| gcp_project_id         | GCP project ID                          | string      | —           | yes      |
+| gcp_region             | GCP region                              | string      | us-central1 | no       |
+| environment_name       | Environment (dev/stage/prod/preview-id) | string      | —           | yes      |
+| image                  | Container image URL                     | string      | —           | yes      |
+| commit_sha             | Git commit SHA for forced redeployment  | string      | ""          | no       |
+| base_domain            | Base domain for subdomains              | string      | example.io  | no       |
+| custom_domain          | Custom domain override                  | string      | ""          | no       |
+| env_vars               | App environment variables               | map(string) | {}          | no       |
+| cpu                    | CPU allocation                          | string      | 1           | no       |
+| memory                 | Memory allocation                       | string      | 512Mi       | no       |
+| min_instances          | Minimum instances                       | number      | 0           | no       |
+| max_instances          | Maximum instances                       | number      | 10          | no       |
+| timeout                | Request timeout (seconds)               | number      | 300         | no       |
+| gcp_devops_project_id  | DevOps project with Docker registry     | string      | —           | yes      |
+| docker_registry_name   | Artifact Registry repository name       | string      | —           | yes      |
+| docker_registry_region | Artifact Registry region                | string      | —           | yes      |
+| enable_public_access   | Allow public unauthenticated access     | bool        | true        | no       |
+| enable_domain_mapping  | Enable custom domain mapping            | bool        | false       | no       |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| service_url | Cloud Run service URL |
-| service_name | Cloud Run service name |
-| custom_domain | Mapped custom domain |
-| public_url | Public-facing URL (domain or Cloud Run URL) |
-| mongodb_uri | Firestore MongoDB connection URI (sensitive) |
-| dns_instructions | DNS configuration instructions |
-| environment | Environment name |
-| region | GCP region |
-| service_account_email | Service account email for impersonation |
+| Name                  | Description                                  |
+| --------------------- | -------------------------------------------- |
+| service_url           | Cloud Run service URL                        |
+| service_name          | Cloud Run service name                       |
+| custom_domain         | Mapped custom domain                         |
+| public_url            | Public-facing URL (domain or Cloud Run URL)  |
+| mongodb_uri           | Firestore MongoDB connection URI (sensitive) |
+| dns_instructions      | DNS configuration instructions               |
+| environment           | Environment name                             |
+| region                | GCP region                                   |
+| service_account_email | Service account email for impersonation      |
 
 ## Notes
 

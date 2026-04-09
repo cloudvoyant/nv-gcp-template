@@ -1,0 +1,23 @@
+{
+  "name": "@nv-gcp-template/storage",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./resize": "./src/resize.ts",
+    "./Image": "./src/Image.svelte"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
+    "google-auth-library": "^9.0.0"
+  },
+  "peerDependencies": {
+    "svelte": ">=5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

@@ -71,6 +71,50 @@ resource "google_firestore_database" "app" {
   depends_on = [google_project_service.firestore]
 }
 
+# Composite index: uploads by user, newest first
+resource "google_firestore_index" "uploads_by_user" {
+  project    = var.gcp_project_id
+  database   = google_firestore_database.app.name
+  collection = "uploads"
+
+  fields {
+    field_path = "userId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "uploadedAt"
+    order      = "DESCENDING"
+  }
+
+  fields {
+    field_path = "__name__"
+    order      = "DESCENDING"
+  }
+}
+
+# Composite index: E2E teardown — find uploads by userId + filename range
+resource "google_firestore_index" "uploads_by_user_filename" {
+  project    = var.gcp_project_id
+  database   = google_firestore_database.app.name
+  collection = "uploads"
+
+  fields {
+    field_path = "userId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "filename"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "__name__"
+    order      = "ASCENDING"
+  }
+}
+
 # Cloud Run service account
 resource "google_service_account" "cloud_run" {
   project      = var.gcp_project_id

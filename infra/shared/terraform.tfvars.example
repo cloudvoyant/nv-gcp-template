@@ -1,0 +1,6 @@
+# Developer emails granted roles/iam.serviceAccountTokenCreator
+# so they can generate v4 signed GCS URLs locally without a key file.
+# Copy to terraform.tfvars and add your team's emails.
+developer_emails = [
+  "you@example.com",
+]

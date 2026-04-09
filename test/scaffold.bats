@@ -18,10 +18,13 @@ setup() {
     export TEMPLATE_CLONE="$PROJECT_DIR/.nv/$PROJECT"
     mkdir -p "$TEMPLATE_CLONE"
 
-    # Copy all files except .git and gitignored directories to template clone
+    # Copy all files except .git, node_modules and build artifacts to template clone
     rsync -a \
         --exclude='.git' \
         --exclude='.nv' \
+        --exclude='node_modules' \
+        --exclude='.svelte-kit' \
+        --exclude='.terraform' \
         "$ORIGINAL_DIR/" "$TEMPLATE_CLONE/"
 
     # Set up test variables

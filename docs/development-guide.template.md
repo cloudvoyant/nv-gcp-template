@@ -15,12 +15,14 @@
 ### Initial Setup
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/YOUR-ORG/{{PROJECT_NAME}}.git
    cd {{PROJECT_NAME}}
    ```
 
 2. Run setup script:
+
    ```bash
    bash scripts/setup.sh --dev
    ```
@@ -28,6 +30,7 @@
    This installs development tools (docker, gcloud, shellcheck, shfmt), Node.js, semantic-release, and optional tools.
 
 3. Configure environment:
+
    ```bash
    # Allow direnv to load .envrc
    direnv allow
@@ -38,6 +41,7 @@
    ```
 
 4. Authenticate with GCP:
+
    ```bash
    gcloud auth login
    gcloud auth application-default login
@@ -67,6 +71,7 @@ What happens when you push:
    - Deploys application
 
 When PR is merged or branch deleted:
+
 - Cleanup workflow destroys all preview infrastructure
 - Removes Terraform workspace
 
@@ -135,11 +140,85 @@ just lint             # Lint code
 just clean            # Clean build artifacts
 ```
 
+## Web App Development
+
+### Running Locally
+
+```bash
+cd apps/web && pnpm dev
+```
+
+### Environment Files
+
+Create `apps/web/.env.local` for local secrets — this file is never committed:
+
+```bash
+# Kinde OAuth credentials
+KINDE_DOMAIN=https://your-app.kinde.com
+KINDE_CLIENT_ID=your_client_id
+KINDE_CLIENT_SECRET=your_client_secret
+
+# GCP configuration
+GCP_PROJECT_ID=your-gcp-project
+BASE_DOMAIN=your-domain.com
+```
+
+### Routes and Components
+
+- SvelteKit routes live in `apps/web/src/routes/`
+- UI components come from `@{{PROJECT_NAME}}/ui` (shadcn-svelte, built on bits-ui + Tailwind)
+- Import UI components from the library — do not copy component source into the app
+
+### Authentication
+
+Auth flows are handled entirely by `libs/auth`. Import `@{{PROJECT_NAME}}/auth` in server-side code only (hooks, `+page.server.ts`, `+layout.server.ts`). Never import auth utilities in client-side modules.
+
+## E2E Testing
+
+### Prerequisites
+
+- A test Kinde user account provisioned for E2E
+- E2E secrets stored in GCP Secret Manager (`{{PROJECT_NAME}}-e2e-secrets`)
+
+### Setup and Running
+
+```bash
+# Fetch E2E secrets from Secret Manager to .env.e2e.local
+just fetch-e2e-secrets
+
+# Seed Firestore with test data
+just seed-e2e
+
+# Run the full Playwright suite (fetches secrets automatically if missing)
+just test-e2e
+```
+
+### Adding Tests
+
+1. Create `.spec.ts` files in `apps/web/e2e/`
+2. Use `storageState: 'e2e/.auth/p1.json'` to reuse the authenticated session
+3. Prefix test-created Firestore records with `[E2E]` — global teardown deletes them automatically
+
+Example test file:
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.use({ storageState: 'e2e/.auth/p1.json' });
+
+test('user can upload an image', async ({ page }) => {
+  // ...
+});
+```
+
+Global teardown runs after every suite and cleans up any Firestore documents whose names or relevant fields are prefixed with `[E2E]`.
+
 ## Local Development Workflow
 
 ### Making Changes
 
 1. Create a feature branch:
+
    ```bash
    git checkout -b feature/PROJ-123-your-feature
    ```
@@ -147,6 +226,7 @@ just clean            # Clean build artifacts
 2. Make your changes, add tests, update documentation
 
 3. Test locally:
+
    ```bash
    just test
    just lint
@@ -154,12 +234,14 @@ just clean            # Clean build artifacts
    ```
 
 4. Test infrastructure changes:
+
    ```bash
    just tf-plan
    just tf-apply
    ```
 
 5. Commit using conventional commits:
+
    ```bash
    git commit -m "feat: add new capability"
    ```
@@ -172,6 +254,7 @@ just clean            # Clean build artifacts
 ### Workspace Management
 
 Terraform workspace is automatically inferred from your git branch:
+
 - On `main` branch → `dev` workspace
 - On `feature/PROJ-123-*` → `proj-123` workspace
 - On other branches → `dev` workspace (fallback)
@@ -248,6 +331,7 @@ build-prod:
 ```
 
 The `publish` recipe automatically uploads to GCP Artifact Registry:
+
 - Release builds: `app@1.2.3`
 - Preview builds: `app@1.0.3-rc.proj-123`
 
@@ -257,25 +341,23 @@ Optionally publish to language-specific registries (npm, PyPI, etc.) by modifyin
 
 ```
 {{PROJECT_NAME}}/
-├── .github/           # GitHub Actions workflows
-│   ├── actions/       # Composite actions
-│   └── workflows/     # CI/CD workflows
-├── .claude/           # AI assistant configuration
-├── docs/              # Documentation
-│   ├── architecture.md
-│   ├── user-guide.md
-│   └── infrastructure.md
-├── infra/             # Terraform infrastructure
-│   ├── modules/       # Terraform modules
-│   └── environments/  # Environment configuration
-├── scripts/           # Build and setup scripts
-├── src/               # Source code (customize)
-├── test/              # Test files (customize)
-├── .envrc             # Environment variables
-├── Dockerfile         # Container definition
-├── docker-compose.yml # Local development
-├── justfile           # Command definitions
-└── README.md          # Project overview
+├── apps/
+│   └── web/               # SvelteKit application
+│       ├── src/
+│       ├── e2e/           # Playwright E2E tests
+│       └── package.json
+├── libs/
+│   ├── auth/              # @{{PROJECT_NAME}}/auth — Kinde OAuth client
+│   ├── storage/           # @{{PROJECT_NAME}}/storage — GCS client + image resize
+│   └── ui/                # @{{PROJECT_NAME}}/ui — shadcn-svelte component library
+├── infra/
+│   ├── shared/            # CDN + public bucket (one-time setup)
+│   ├── environments/      # Per-workspace Cloud Run + Firestore + bucket
+│   └── modules/           # Reusable Terraform modules
+├── scripts/               # Build and setup scripts
+├── .envrc                 # Environment variables (committed)
+├── justfile               # All commands
+└── README.md
 ```
 
 ## Testing
@@ -288,6 +370,7 @@ just test
 ```
 
 After scaffolding, implement your own tests:
+
 1. Create test files in `test/` directory
 2. Update `test` recipe in justfile
 3. Tests run automatically in CI
@@ -380,6 +463,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation

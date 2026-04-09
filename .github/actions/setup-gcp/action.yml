@@ -1,9 +1,9 @@
-name: 'Setup GCP'
-description: 'Authenticate and configure GCP'
+name: "Setup GCP"
+description: "Authenticate and configure GCP"
 
 inputs:
   gcp_sa_key:
-    description: 'GCP Service Account Key'
+    description: "GCP Service Account Key"
     required: true
 
 runs:

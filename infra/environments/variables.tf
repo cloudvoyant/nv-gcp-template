@@ -56,3 +56,9 @@ variable "prod_domain" {
   type        = string
   default     = ""
 }
+
+variable "cdn_base_url" {
+  description = "Base URL for Cloud CDN (e.g. https://cdn.example.com)"
+  type        = string
+  default     = ""
+}

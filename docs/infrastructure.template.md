@@ -6,6 +6,37 @@
 
 {{PROJECT_NAME}} uses Terraform for infrastructure-as-code with automated CI/CD through GitHub Actions. The system provides isolated preview environments for feature branches and a structured promotion workflow (dev → stage → prod) with approval gates.
 
+## Terraform Roots
+
+There are two separate Terraform roots with different lifecycles:
+
+### `infra/shared/` — One-Time Project Setup
+
+Applied **once per project** when first setting up. Creates:
+
+- Cloud CDN configuration
+- Public GCS bucket for served assets (images, static files)
+
+```bash
+just tf-shared-init
+just tf-shared-apply
+```
+
+This root does not use workspaces — it provisions resources shared across all environments.
+
+### `infra/environments/` — Per-Workspace Resources
+
+Applied **per workspace** (preview, dev, stage, prod). Creates:
+
+- Cloud Run service
+- Firestore database
+- Private GCS bucket for user uploads
+
+```bash
+just tf-init      # Infers workspace from current branch
+just tf-apply
+```
+
 ## Terraform Infrastructure
 
 ### Branch-to-Environment Mapping
@@ -65,6 +96,7 @@ All GCP resources follow this convention:
 Naming Pattern: `${project}-${environment}--${resource-name}`
 
 Examples:
+
 - Preview: `{{PROJECT_NAME}}-proj-123--bucket`
 - Dev: `{{PROJECT_NAME}}-dev--bucket`
 - Stage: `{{PROJECT_NAME}}-stage--bucket`
@@ -86,7 +118,7 @@ labels = {
 
 Workspaces:
 
-- preview-* (dynamic): No approvals, short-lived, auto-created per branch
+- preview-\* (dynamic): No approvals, short-lived, auto-created per branch
 - dev: No approvals, auto-deploy on merge to main
 - stage: Requires manual approval before deploy
 - prod: Requires manual approval before deploy
@@ -98,6 +130,101 @@ Naming Rules:
 - No special characters except dash
 - Maximum 63 characters
 
+## Firestore Indexes
+
+Composite indexes are defined as `google_firestore_index` resources in `infra/modules/nv-fullstack-app/main.tf`. Terraform is the single source of truth for indexes.
+
+**Do not use `firestore.indexes.json`** — that file is ignored and Terraform will not pick up changes made there.
+
+After adding or modifying an index, apply Terraform and allow 2-3 minutes for the index to finish building before queries that depend on it will work.
+
+### Adding a New Composite Index
+
+Example: querying uploads by `userId` + `createdAt` descending.
+
+In `infra/modules/nv-fullstack-app/main.tf`:
+
+```hcl
+resource "google_firestore_index" "uploads_by_user_created" {
+  project    = var.project_id
+  collection = "uploads"
+
+  fields {
+    field_path = "userId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "createdAt"
+    order      = "DESCENDING"
+  }
+}
+```
+
+Then apply:
+
+```bash
+just tf-apply
+```
+
+Wait 2-3 minutes for the index to build before the query is usable in the app.
+
+## Secret Manager
+
+Runtime secrets are stored in the DevOps project's Secret Manager, not in source control.
+
+### Naming Convention
+
+Secrets are named `{PROJECT}-{WORKSPACE}` — for example:
+
+- `{{PROJECT_NAME}}-dev`
+- `{{PROJECT_NAME}}-stage`
+- `{{PROJECT_NAME}}-prod`
+- `{{PROJECT_NAME}}-proj-123` (preview)
+
+### Secret Format
+
+Each secret is an env-file with one `KEY=VALUE` per line:
+
+```
+KINDE_DOMAIN=https://your-app.kinde.com
+KINDE_CLIENT_ID=your_client_id
+KINDE_CLIENT_SECRET=your_client_secret
+BASE_DOMAIN=your-domain.com
+```
+
+Required keys for every workspace secret:
+
+| Key                   | Description                          |
+| --------------------- | ------------------------------------ |
+| `KINDE_DOMAIN`        | Kinde tenant URL                     |
+| `KINDE_CLIENT_ID`     | Kinde application client ID          |
+| `KINDE_CLIENT_SECRET` | Kinde application client secret      |
+| `BASE_DOMAIN`         | Base domain for the deployed app URL |
+
+### E2E Secrets
+
+E2E credentials are stored in a separate secret named `{{PROJECT_NAME}}-e2e-secrets`:
+
+```
+E2E_P1_USER_ID=kp_...
+E2E_P1_PASSWORD=your_test_user_password
+```
+
+Create or update E2E secrets:
+
+```bash
+just setup-e2e-secrets
+```
+
+Or update manually via GCP Console → Secret Manager.
+
+### How Secrets Are Used
+
+- **Cloud Run**: Secrets are injected at deploy time as environment variables. Rotating a secret requires a new deployment.
+- **Local development**: Copy the required keys to `apps/web/.env.local` (never committed).
+- **E2E tests**: Run `just fetch-e2e-secrets` to pull e2e secrets to `.env.e2e.local`.
+
 ## CI/CD Workflows
 
 ### Preview Environment Workflow
@@ -105,6 +232,7 @@ Naming Rules:
 Trigger: Push to `feature/*`, `bugfix/*`, `hotfix/*` branches
 
 Steps:
+
 1. Extract issue ID from branch name
 2. Run tests, linting, formatting checks
 3. Build Docker image tagged with issue ID
@@ -121,6 +249,7 @@ Cleanup: When PR is merged or branch deleted, workflow destroys infrastructure a
 Trigger: Push to `main` branch
 
 Steps:
+
 1. Run tests
 2. Analyze conventional commits for version bump
 3. Update version.txt and CHANGELOG.md
@@ -136,6 +265,7 @@ Steps:
 Trigger: Manual workflow dispatch
 
 Steps:
+
 1. Checkout specific git tag
 2. Select environment (stage or prod)
 3. Run Terraform plan/apply
@@ -195,6 +325,7 @@ gcloud iam service-accounts keys create github-actions-key.json \
 ```
 
 Add to GitHub Secrets:
+
 1. Go to repository Settings → Secrets → Actions
 2. Create secret `GCP_SA_KEY` with contents of `github-actions-key.json`
 3. Delete local key: `rm github-actions-key.json`
@@ -241,6 +372,7 @@ just tf-select-workspace
 ```
 
 Workspace is automatically inferred from git branch:
+
 - On `main` branch → `dev` workspace
 - On `feature/PROJ-123-*` → `proj-123` workspace
 - On other branches → `dev` workspace (fallback)
@@ -264,6 +396,7 @@ just docker-push my-feature-tag
 ```
 
 Image naming pattern:
+
 ```
 ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}:${TAG}
 ```
@@ -293,6 +426,7 @@ terraform force-unlock <LOCK_ID>
 ### Preview Environment Not Cleaning Up
 
 Check cleanup workflow logs in GitHub Actions. Common issues:
+
 - Workflow didn't trigger (check branch name pattern)
 - Terraform destroy failed (check permissions)
 
@@ -363,6 +497,7 @@ TODO: Add metrics collection and dashboard links.
 ## Support
 
 For infrastructure-related questions:
+
 - File an issue in the GitHub repository
 - Review [user-guide.md](./user-guide.md) for CI/CD workflow details
 - Review [architecture.md](./architecture.md) for system design

@@ -1,0 +1,16 @@
+{
+  "name": "@nv-gcp-template/auth",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "dependencies": {
+    "jose": "^6.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
