@@ -18,10 +18,29 @@ async function loginAs(
 
   await page.goto(`${baseUrl}/login`);
 
-  // Fill Kinde's hosted login form
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByRole("button", { name: /continue/i }).click();
-  await page.getByRole("textbox", { name: /password/i }).fill(password);
+  // Wait until Kinde's hosted login page is loaded (redirected away from app)
+  await page.waitForURL(/kinde\.com/, { timeout: 15_000 });
+
+  // Fill Kinde's hosted login form.
+  // Use input[name] selectors as a robust fallback in case label text varies.
+  const emailInput = page
+    .locator('input[name="p_email"], input[type="email"]')
+    .first();
+  await emailInput.waitFor({ state: "visible", timeout: 15_000 });
+  await emailInput.fill(email);
+
+  // Try two-step flow (email → Continue → password). Falls back gracefully
+  // if the "Continue" button isn't present (single-step form).
+  const continueBtn = page.getByRole("button", { name: /continue/i });
+  if (await continueBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await continueBtn.click();
+  }
+
+  const passwordInput = page
+    .locator('input[name="p_password"], input[type="password"]')
+    .first();
+  await passwordInput.waitFor({ state: "visible", timeout: 15_000 });
+  await passwordInput.fill(password);
   await page.getByRole("button", { name: /sign in|continue|log in/i }).click();
 
   // Wait for redirect back to app. 60s for Cloud Run cold starts.
