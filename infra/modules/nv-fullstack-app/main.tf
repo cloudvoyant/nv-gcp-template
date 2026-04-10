@@ -147,6 +147,14 @@ resource "google_project_iam_member" "cloud_run_datastore" {
   member  = "serviceAccount:${google_service_account.cloud_run.email}"
 }
 
+# Allow Cloud Run SA to sign blobs as itself — required for GCS v4 signed URL generation.
+# Without this, generateSignedUploadUrl() fails on Cloud Run with ADC.
+resource "google_service_account_iam_member" "cloud_run_token_creator" {
+  service_account_id = google_service_account.cloud_run.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
 # Cloud Run v2 service (only deployed when an image is provided)
 resource "google_cloud_run_v2_service" "app" {
   count    = var.image != "" ? 1 : 0
