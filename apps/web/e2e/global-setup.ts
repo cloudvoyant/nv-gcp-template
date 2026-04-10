@@ -22,10 +22,6 @@ async function loginAs(
   // Wait until Kinde's hosted login page is loaded (redirected away from app)
   await page.waitForURL(/kinde\.com/, { timeout: 15_000 });
 
-  // Capture page state for debugging — helps diagnose selector mismatches in CI
-  await page.screenshot({ path: "e2e/.auth/kinde-login-debug.png" });
-  console.log("Kinde page URL:", page.url());
-
   // Fill Kinde's hosted login form.
   // Kinde renders the email field as type="text" with name="email" or id="email".
   const emailInput = page

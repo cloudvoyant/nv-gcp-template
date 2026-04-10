@@ -19,11 +19,6 @@ test.describe("Upload page", () => {
   });
 
   test("authenticated user can upload an image", async ({ page }) => {
-    const consoleMessages: string[] = [];
-    page.on("console", (msg) =>
-      consoleMessages.push(`[${msg.type()}] ${msg.text()}`),
-    );
-
     await page.goto("/uploads/new");
     // Should not redirect — p1 is authenticated via global setup
     await expect(page).not.toHaveURL(/\/login/);
@@ -33,32 +28,16 @@ test.describe("Upload page", () => {
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(TEST_IMAGE);
 
-    // Wait for the file to be picked up (preview image or filename should appear)
+    // Wait for the file to be picked up (filename should appear)
     await expect(page.locator("p.text-muted-foreground.truncate")).toBeVisible({
       timeout: 5_000,
     });
 
-    // Click upload and wait for redirect to /uploads list (not /uploads/new)
+    // Click upload and wait for redirect to /uploads list
     await page.locator('button[type="submit"]').click();
-
-    // If an error appears, fail immediately with its text rather than timing out
-    const errorEl = page.locator("p.text-red-600");
-    const result = await Promise.race([
-      page
-        .waitForURL((url) => url.pathname === "/uploads", { timeout: 45_000 })
-        .then(() => "navigated"),
-      errorEl
-        .waitFor({ state: "visible", timeout: 45_000 })
-        .then(() => "error"),
-    ]);
-
-    if (result === "error") {
-      const errorText = await errorEl.textContent();
-      throw new Error(
-        `Upload failed with error: "${errorText}"\nConsole: ${consoleMessages.join("\n")}`,
-      );
-    }
-
+    await page.waitForURL((url) => url.pathname === "/uploads", {
+      timeout: 45_000,
+    });
     await expect(page).toHaveURL(/\/uploads$/);
   });
 });
