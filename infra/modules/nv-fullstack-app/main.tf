@@ -204,6 +204,11 @@ resource "google_cloud_run_v2_service" "app" {
         name  = "ENVIRONMENT"
         value = var.environment_name
       }
+
+      env {
+        name  = "FIRESTORE_DATABASE_ID"
+        value = google_firestore_database.app.name
+      }
     }
 
     timeout = "${var.timeout}s"
