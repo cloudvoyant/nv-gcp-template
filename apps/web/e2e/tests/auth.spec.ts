@@ -26,7 +26,10 @@ test.describe("Authentication", () => {
     await page.goto("/auth/logout");
     // Kinde logout endpoint redirects back to the app's origin after logout.
     // Use baseURL so this works both locally and against preview environments.
-    await page.waitForURL(new RegExp(baseURL!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), { timeout: 15_000 });
+    await page.waitForURL(
+      new RegExp(baseURL!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      { timeout: 15_000 },
+    );
     // The session cookie must be gone after logout.
     const cookies = await page.context().cookies();
     const sessionCookie = cookies.find((c) => c.name.endsWith("_session"));
