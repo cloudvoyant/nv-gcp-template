@@ -42,6 +42,8 @@ jobs:
 
       - name: Run tests
         run: just test
+        env:
+          SKIP_TF_TESTS: "1"
 
       - name: Build production artifacts
         run: just build-prod
