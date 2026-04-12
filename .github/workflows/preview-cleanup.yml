@@ -18,6 +18,13 @@ jobs:
   cleanup:
     name: Destroy Preview Infrastructure
     runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'delete') ||
+      (github.event_name == 'pull_request' && (
+        startsWith(github.event.pull_request.head.ref, 'feature/') ||
+        startsWith(github.event.pull_request.head.ref, 'bugfix/') ||
+        startsWith(github.event.pull_request.head.ref, 'hotfix/')
+      ))
 
     steps:
       - name: Checkout
