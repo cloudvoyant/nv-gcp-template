@@ -4,6 +4,7 @@ import { loadPasswords, PERSONAS } from "./fixtures/auth";
 import * as fs from "fs";
 
 const STORAGE_STATE_P1 = "e2e/.auth/storageState.json";
+const STORAGE_STATE_P2 = "e2e/.auth/storageState.persona2.json";
 const REPO_ROOT = new URL("../../../", import.meta.url).pathname;
 
 async function loginAs(

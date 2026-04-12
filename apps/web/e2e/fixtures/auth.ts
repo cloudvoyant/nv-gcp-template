@@ -1,33 +1,22 @@
-import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
+import { PERSONAS } from "../personas";
 
-export const PERSONAS = {
-  p1: {
-    email: "adalovelace@cloudvoyant.io",
-    displayName: "Ada Lovelace",
-  },
-} as const;
+// Load passwords from .env.e2e.local (written by fetch-e2e-secrets.sh)
+dotenv.config({ path: path.resolve(process.cwd(), ".env.e2e.local") });
 
-export type PersonaKey = keyof typeof PERSONAS;
-
-export interface Passwords {
+export function loadPasswords(): {
   p1Password: string;
-}
-
-/**
- * Load E2E passwords from .env.e2e.local (never committed).
- * Falls back to environment variables (useful in CI after fetch-e2e-secrets).
- */
-export function loadPasswords(): Passwords {
-  const envPath = path.resolve(process.cwd(), ".env.e2e.local");
-  if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath });
-  }
-
+  p2Password: string | undefined;
+} {
   const p1Password = process.env.E2E_P1_PASSWORD;
+  const p2Password = process.env.E2E_P2_PASSWORD;
+
   if (!p1Password) {
-    throw new Error("E2E_P1_PASSWORD not set. Run: just fetch-e2e-secrets");
+    throw new Error("Missing E2E_P1_PASSWORD.\nRun: just fetch-e2e-secrets");
   }
-  return { p1Password };
+
+  return { p1Password, p2Password };
 }
+
+export { PERSONAS };

@@ -2,3 +2,5 @@
 build/
 node_modules/
 gha-creds-*.json
+service-account*.json
+credentials.json
