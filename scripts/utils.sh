@@ -261,7 +261,6 @@ check_gcloud_auth() {
 # Extract issue ID from branch name (e.g., feature/PROJ-12345-description -> proj-12345)
 # Supports variable-length alphanumeric issue IDs from external trackers
 # Examples: JIRA-1, LIN-456, PROJ-12345, TICKET-999, etc.
-# Returns "dev" if no issue ID found
 extract_issue_id() {
     local branch_name="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 
@@ -272,7 +271,9 @@ extract_issue_id() {
         # Convert to lowercase and return
         echo "${issue_id,,}"
     else
-        echo "dev"
+        echo "ERROR: Cannot extract issue ID from branch '${branch_name}'" >&2
+        echo "ERROR: Branch must match feature/PROJ-123-*, bugfix/PROJ-123-*, or hotfix/PROJ-123-*" >&2
+        return 1
     fi
 }
 
@@ -293,7 +294,10 @@ infer_terraform_workspace() {
         elif [[ "$branch_name" =~ ^(feature|bugfix|hotfix)/ ]]; then
             extract_issue_id "$branch_name"
         else
-            echo "dev"
+            echo "ERROR: Cannot infer workspace from branch '${branch_name}'" >&2
+            echo "ERROR: Branch must be 'main' or match feature|bugfix|hotfix/PROJ-123-*" >&2
+            echo "ERROR: Pass WORKSPACE explicitly: just <recipe> <workspace>" >&2
+            return 1
         fi
     fi
 }
