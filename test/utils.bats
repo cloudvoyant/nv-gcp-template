@@ -16,12 +16,12 @@ setup() {
     [ "$result" = "bug-1" ]
 }
 
-@test "extract_issue_id: returns dev for non-feature branches" {
-    result=$(extract_issue_id "main")
-    [ "$result" = "dev" ]
+@test "extract_issue_id: fails for non-feature branches" {
+    run extract_issue_id "main"
+    [ "$status" -ne 0 ]
 
-    result=$(extract_issue_id "random-branch")
-    [ "$result" = "dev" ]
+    run extract_issue_id "random-branch"
+    [ "$status" -ne 0 ]
 }
 
 @test "infer_terraform_workspace: uses explicit environment" {
