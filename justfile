@@ -158,6 +158,100 @@ lint *PATHS:
 lint-fix *PATHS:
     pnpm prettier --write ${PATHS:-.}
 
+# Store Kinde credentials in GCP Secret Manager as ENV key=value lines.
+# The secret container is created by `just tf-apply-shared`; this adds a version.
+# ENV: nonprod or prod
+[group('utils')]
+setup-secrets ENV:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    SECRET_NAME="${PROJECT}-secrets-{{ENV}}"
+    log_info "Adding Kinde credentials to '${SECRET_NAME}'..."
+    read -rp "Kinde domain (e.g. yourapp.kinde.com): " KINDE_DOMAIN
+    read -rp "Kinde client ID: " KINDE_CLIENT_ID
+    read -rsp "Kinde client secret: " KINDE_CLIENT_SECRET
+    echo
+    printf "KINDE_DOMAIN=%s\nKINDE_CLIENT_ID=%s\nKINDE_CLIENT_SECRET=%s\n" \
+      "${KINDE_DOMAIN}" "${KINDE_CLIENT_ID}" "${KINDE_CLIENT_SECRET}" | \
+      gcloud secrets versions add "${SECRET_NAME}" \
+        --data-file=- \
+        --project="${GCP_DEVOPS_PROJECT_ID}"
+    log_success "Secrets stored as ${SECRET_NAME}"
+
+# Store E2E test credentials in GCP Secret Manager (run once per project)
+[group('utils')]
+setup-e2e-secrets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    SECRET_NAME="${PROJECT}-e2e-secrets"
+    log_info "Storing E2E credentials in '${SECRET_NAME}'..."
+    read -rsp "E2E p1 password: " P1_PASSWORD
+    echo
+    read -rsp "E2E p1 user ID: " P1_USER_ID
+    echo
+    printf "E2E_P1_PASSWORD=%s\nE2E_P1_USER_ID=%s\n" "${P1_PASSWORD}" "${P1_USER_ID}" | \
+      gcloud secrets versions add "${SECRET_NAME}" \
+        --data-file=- \
+        --project="${GCP_DEVOPS_PROJECT_ID}"
+    log_success "E2E secrets stored as ${SECRET_NAME}"
+
+# Generate .env.local from GCP Secret Manager + Terraform outputs
+# WORKSPACE: local | dev | {issue-id}
+# ENV: nonprod | prod
+[group('utils')]
+create-local-config WORKSPACE="" ENV="nonprod":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    source scripts/utils.sh
+    WORKSPACE="{{WORKSPACE}}"
+    ENV="{{ENV}}"
+    if [ -z "${WORKSPACE}" ] || [ "${WORKSPACE}" = "local" ]; then
+      WORKSPACE="$(infer_terraform_workspace)"
+    fi
+    SECRET_NAME="${PROJECT}-secrets-${ENV}"
+    log_info "Fetching secrets for workspace=${WORKSPACE}, env=${ENV}..."
+    APP_SECRETS=$(gcloud secrets versions access latest \
+      --secret="${SECRET_NAME}" \
+      --project="${GCP_DEVOPS_PROJECT_ID}")
+    KINDE_DOMAIN=$(echo "${APP_SECRETS}" | grep "^KINDE_DOMAIN=" | cut -d'=' -f2-)
+    KINDE_CLIENT_ID=$(echo "${APP_SECRETS}" | grep "^KINDE_CLIENT_ID=" | cut -d'=' -f2-)
+    KINDE_CLIENT_SECRET=$(echo "${APP_SECRETS}" | grep "^KINDE_CLIENT_SECRET=" | cut -d'=' -f2-)
+
+    FIRESTORE_DB="${PROJECT}-${WORKSPACE}"
+
+    cd infra/environments
+    if terraform workspace select "${WORKSPACE}" 2>/dev/null; then
+      GCS_PUBLIC_BUCKET="${PROJECT}-public"
+      GCS_PRIVATE_BUCKET=$(terraform output -raw private_bucket_name 2>/dev/null || echo "")
+      GCS_SA_EMAIL=$(terraform output -raw service_account_email 2>/dev/null || echo "")
+      if [ -z "${GCS_PRIVATE_BUCKET}" ]; then
+        log_warn "No Terraform outputs found. Run 'just tf-apply ${WORKSPACE}' first."
+      fi
+    else
+      log_warn "Workspace ${WORKSPACE} does not exist yet — Terraform outputs will be empty."
+      log_warn "Run 'just tf-apply ${WORKSPACE}' to deploy infrastructure first."
+      GCS_PUBLIC_BUCKET="${PROJECT}-public"
+      GCS_PRIVATE_BUCKET=""
+      GCS_SA_EMAIL=""
+    fi
+    cd ../..
+
+    {
+      printf "VITE_KINDE_DOMAIN=%s\n" "${KINDE_DOMAIN}"
+      printf "VITE_KINDE_CLIENT_ID=%s\n" "${KINDE_CLIENT_ID}"
+      printf "KINDE_CLIENT_SECRET=%s\n" "${KINDE_CLIENT_SECRET}"
+      printf "GCP_PROJECT_ID=%s\n" "${GCP_PROJECT_ID}"
+      printf "ENVIRONMENT=%s\n" "${WORKSPACE}"
+      printf "GCS_PUBLIC_BUCKET_NAME=%s\n" "${GCS_PUBLIC_BUCKET}"
+      printf "GCS_PRIVATE_BUCKET_NAME=%s\n" "${GCS_PRIVATE_BUCKET}"
+      printf "GCS_SERVICE_ACCOUNT_EMAIL=%s\n" "${GCS_SA_EMAIL}"
+      printf "FIRESTORE_DATABASE_ID=%s\n" "${FIRESTORE_DB}"
+    } > apps/web/.env.local
+    log_success "apps/web/.env.local generated for workspace ${WORKSPACE}"
+
 # Upgrade to newer template version (requires Claude Code)
 [group('utils')]
 upgrade:
@@ -305,9 +399,18 @@ tf-plan WORKSPACE="": (tf-init WORKSPACE)
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
-    # Use TF_VAR_app_image if set by CI (docker push step). Leave empty otherwise
-    # so Cloud Run is not deployed without a valid image.
-    APP_IMAGE="${TF_VAR_app_image:-}"
+    # Use TF_VAR_app_image if set by CI, otherwise construct from registry + workspace tag
+    if [ -n "${TF_VAR_app_image:-}" ]; then
+        APP_IMAGE="${TF_VAR_app_image}"
+    else
+        if [[ "${WORKSPACE_NAME}" == "dev" || "${WORKSPACE_NAME}" == "stage" || "${WORKSPACE_NAME}" == "prod" ]]; then
+            IMAGE_TAG="${VERSION}"
+        else
+            IMAGE_TAG="${WORKSPACE_NAME}"
+        fi
+        APP_IMAGE="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-web:${IMAGE_TAG}"
+    fi
+    log_info "App image: ${APP_IMAGE}"
 
     cd infra/environments
     terraform plan \
@@ -331,9 +434,18 @@ tf-apply WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
-    # Use TF_VAR_app_image if set by CI (docker push step). Leave empty otherwise
-    # so Cloud Run is not deployed without a valid image.
-    APP_IMAGE="${TF_VAR_app_image:-}"
+    # Use TF_VAR_app_image if set by CI, otherwise construct from registry + workspace tag
+    if [ -n "${TF_VAR_app_image:-}" ]; then
+        APP_IMAGE="${TF_VAR_app_image}"
+    else
+        if [[ "${WORKSPACE_NAME}" == "dev" || "${WORKSPACE_NAME}" == "stage" || "${WORKSPACE_NAME}" == "prod" ]]; then
+            IMAGE_TAG="${VERSION}"
+        else
+            IMAGE_TAG="${WORKSPACE_NAME}"
+        fi
+        APP_IMAGE="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-web:${IMAGE_TAG}"
+    fi
+    log_info "App image: ${APP_IMAGE}"
 
     cd infra/environments
 
@@ -369,7 +481,6 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
     WORKSPACE_NAME="{{WORKSPACE}}"
     WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 
-    # Use TF_VAR_app_image if set, otherwise empty (Cloud Run not provisioned without an image)
     APP_IMAGE="${TF_VAR_app_image:-}"
 
     log_warn "WARNING: This will destroy all infrastructure in workspace: ${WORKSPACE_NAME}"
@@ -392,6 +503,55 @@ tf-destroy WORKSPACE="" AUTO_APPROVE="": (tf-init WORKSPACE)
         -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
         -var="app_image=${APP_IMAGE}" \
         $([ "{{AUTO_APPROVE}}" = "--auto-approve" ] && echo "-auto-approve" || echo "")
+
+# Shared infrastructure (CDN, public bucket) — apply once per GCP project
+[group('terraform')]
+tf-init-shared:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    terraform -chdir=infra/shared init \
+      -backend-config="bucket=${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage" \
+      -backend-config="prefix=${GCP_PROJECT_ID}/${PROJECT}/shared"
+
+[group('terraform')]
+tf-plan-shared:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    just tf-init-shared
+    terraform -chdir=infra/shared plan \
+      -var="project=${PROJECT}" \
+      -var="gcp_project_id=${GCP_PROJECT_ID}" \
+      -var="gcp_region=${GCP_REGION}" \
+      -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}"
+
+[group('terraform')]
+tf-apply-shared *FLAGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    just tf-init-shared
+    terraform -chdir=infra/shared apply \
+      -var="project=${PROJECT}" \
+      -var="gcp_project_id=${GCP_PROJECT_ID}" \
+      -var="gcp_region=${GCP_REGION}" \
+      -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+      {{FLAGS}}
+
+[group('terraform')]
+tf-destroy-shared *FLAGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    just tf-init-shared
+    confirm "Destroy shared CDN infrastructure for ${PROJECT}?"
+    terraform -chdir=infra/shared destroy \
+      -var="project=${PROJECT}" \
+      -var="gcp_project_id=${GCP_PROJECT_ID}" \
+      -var="gcp_region=${GCP_REGION}" \
+      -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+      {{FLAGS}}
 
 # ==============================================================================
 # CI/CD
@@ -551,3 +711,107 @@ test-template:
         echo -e "{{ERROR}}bats not installed. Run: just setup --template{{NORMAL}}";
         exit 1;
     fi
+
+# Run E2E tests
+# WORKSPACE: local | dev | stage | prod | {issue-id}
+[group('dev')]
+test-e2e WORKSPACE="local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    source scripts/utils.sh
+    WORKSPACE="{{WORKSPACE}}"
+
+    # Fetch credentials from Secret Manager if .env.e2e.local doesn't exist
+    if [ ! -f apps/web/.env.e2e.local ]; then
+      log_info "Fetching E2E credentials from Secret Manager..."
+      just fetch-e2e-secrets
+    fi
+
+    # Write workspace-specific GCP vars into .env.e2e.local.
+    # Always rewrite (not append) so re-runs don't accumulate duplicate entries.
+    TMP=$(mktemp)
+    grep -v "^GCP_PROJECT_ID=\|^FIRESTORE_DATABASE_ID=\|^GCS_PUBLIC_BUCKET_NAME=\|^GCS_PRIVATE_BUCKET_NAME=" apps/web/.env.e2e.local > "${TMP}" || true
+    if [ "${WORKSPACE}" = "local" ]; then
+      # Read GCP vars from .env.local (generated by create-local-config)
+      GCP_PROJECT_ID_VAL=$(grep "^GCP_PROJECT_ID=" apps/web/.env.local | cut -d= -f2)
+      FIRESTORE_DB_VAL=$(grep "^FIRESTORE_DATABASE_ID=" apps/web/.env.local | cut -d= -f2)
+      GCS_PUBLIC_VAL=$(grep "^GCS_PUBLIC_BUCKET_NAME=" apps/web/.env.local | cut -d= -f2)
+      GCS_PRIVATE_VAL=$(grep "^GCS_PRIVATE_BUCKET_NAME=" apps/web/.env.local | cut -d= -f2)
+    else
+      # Derive GCP vars from workspace naming convention
+      GCP_PROJECT_ID_VAL="${GCP_PROJECT_ID}"
+      FIRESTORE_DB_VAL="${PROJECT}-${WORKSPACE}"
+      GCS_PUBLIC_VAL="${PROJECT}-public"
+      GCS_PRIVATE_VAL="${PROJECT}-${WORKSPACE}--bucket"
+    fi
+    {
+      echo "GCP_PROJECT_ID=${GCP_PROJECT_ID_VAL}"
+      echo "FIRESTORE_DATABASE_ID=${FIRESTORE_DB_VAL}"
+      echo "GCS_PUBLIC_BUCKET_NAME=${GCS_PUBLIC_VAL}"
+      echo "GCS_PRIVATE_BUCKET_NAME=${GCS_PRIVATE_VAL}"
+    } >> "${TMP}"
+    mv "${TMP}" apps/web/.env.e2e.local
+
+    # For local mode: export GCP vars from .env.e2e.local so the local dev server
+    # uses the same database as the seed/teardown scripts.
+    if [ "${WORKSPACE}" = "local" ]; then
+      export GCP_PROJECT_ID=$(grep "^GCP_PROJECT_ID=" apps/web/.env.e2e.local | cut -d= -f2)
+      export FIRESTORE_DATABASE_ID=$(grep "^FIRESTORE_DATABASE_ID=" apps/web/.env.e2e.local | cut -d= -f2)
+      export GCS_PUBLIC_BUCKET_NAME=$(grep "^GCS_PUBLIC_BUCKET_NAME=" apps/web/.env.e2e.local | cut -d= -f2)
+      export GCS_PRIVATE_BUCKET_NAME=$(grep "^GCS_PRIVATE_BUCKET_NAME=" apps/web/.env.e2e.local | cut -d= -f2)
+    fi
+
+    # Derive BASE_URL (allow override via env var for CI)
+    if [ -z "${BASE_URL:-}" ]; then
+      if [ "${WORKSPACE}" = "local" ]; then
+        BASE_URL="http://localhost:5175"
+      else
+        BASE_URL=$(just get-url "${WORKSPACE}" 2>/dev/null || echo "")
+        if [ -z "${BASE_URL}" ]; then
+          log_error "Could not determine BASE_URL for workspace ${WORKSPACE}"
+          exit 1
+        fi
+      fi
+    fi
+
+    log_info "Running E2E tests against: ${BASE_URL}"
+
+    # Install Playwright browser if missing
+    pnpm --filter @nv-gcp-template/web exec playwright install chromium --with-deps 2>/dev/null || true
+
+    BASE_URL="${BASE_URL}" WORKSPACE="${WORKSPACE}" \
+      pnpm --filter @nv-gcp-template/web exec playwright test
+
+# Open Playwright interactive UI (local only)
+[group('dev')]
+test-e2e-ui:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    pnpm --filter @nv-gcp-template/web exec playwright test --ui
+
+# Seed E2E test data for a given workspace
+[group('dev')]
+seed-e2e WORKSPACE="local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    if [ ! -f apps/web/.env.e2e.local ]; then
+      just fetch-e2e-secrets
+    fi
+    # Load all E2E vars (credentials + workspace-specific GCP vars) from .env.e2e.local
+    set -a
+    source apps/web/.env.e2e.local
+    set +a
+    WORKSPACE="{{WORKSPACE}}" npx tsx scripts/seed-uploads.ts
+
+# Pull E2E test credentials from GCP Secret Manager into .env.e2e.local
+[group('dev')]
+fetch-e2e-secrets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source .envrc
+    log_info "Fetching E2E secrets from Secret Manager..."
+    ./scripts/fetch-e2e-secrets.sh
+    log_success "Credentials written to apps/web/.env.e2e.local"

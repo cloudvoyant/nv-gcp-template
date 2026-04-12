@@ -1,5 +1,5 @@
-name: 'Setup Environment'
-description: 'Install dependencies, configure caching, and setup tools'
+name: "Setup Environment"
+description: "Install dependencies, configure caching, and setup tools"
 
 runs:
   using: "composite"

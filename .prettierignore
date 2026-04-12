@@ -1,0 +1,10 @@
+node_modules/
+apps/web/.svelte-kit/
+apps/web/build/
+gha-creds-*.json
+infra/environments/tfplan
+infra/environments/*.tfvars
+.nv/
+pnpm-lock.yaml
+service-account*.json
+credentials.json

@@ -43,3 +43,7 @@ output "service_account_email" {
   description = "Service account email for local dev impersonation"
   value       = module.fullstack_app.service_account_email
 }
+
+output "private_bucket_name" {
+  value = module.storage_bucket.private_bucket_name
+}

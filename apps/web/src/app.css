@@ -1,3 +1,94 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 1 0 0;
+    --foreground: 0.3485 0 0;
+    --card: 1 0 0;
+    --card-foreground: 0.3485 0 0;
+    --popover: 1 0 0;
+    --popover-foreground: 0.3485 0 0;
+    --primary: 0.4891 0 0;
+    --primary-foreground: 0.9551 0 0;
+    --secondary: 0.9006 0 0;
+    --secondary-foreground: 0.3485 0 0;
+    --muted: 0.9158 0 0;
+    --muted-foreground: 0.4313 0 0;
+    --accent: 0.985 0 0;
+    --accent-foreground: 0.4015 0.0436 37.9587;
+    --destructive: 0.6627 0.0978 20.0041;
+    --destructive-foreground: 1 0 0;
+    --border: 0.88 0.0025 17.232;
+    --input: 1 0 0;
+    --ring: 0.7058 0 0;
+    --chart-1: 0.3211 0 0;
+    --chart-2: 0.4495 0 0;
+    --chart-3: 0.5693 0 0;
+    --chart-4: 0.683 0 0;
+    --chart-5: 0.7921 0 0;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 0.2891 0 0;
+    --foreground: 0.8945 0 0;
+    --card: 0.3211 0 0;
+    --card-foreground: 0.8945 0 0;
+    --popover: 0.3211 0 0;
+    --popover-foreground: 0.8945 0 0;
+    --primary: 0.7572 0 0;
+    --primary-foreground: 0.2891 0 0;
+    --secondary: 0.4676 0 0;
+    --secondary-foreground: 0.8078 0 0;
+    --muted: 0.3904 0 0;
+    --muted-foreground: 0.7058 0 0;
+    --accent: 0.9067 0 0;
+    --accent-foreground: 0.3211 0 0;
+    --destructive: 0.7915 0.0491 18.241;
+    --destructive-foreground: 0.2891 0 0;
+    --border: 0.4276 0 0;
+    --input: 0.3211 0 0;
+    --ring: 0.8078 0 0;
+    --chart-1: 0.9521 0 0;
+    --chart-2: 0.8576 0 0;
+    --chart-3: 0.7572 0 0;
+    --chart-4: 0.6534 0 0;
+    --chart-5: 0.5452 0 0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  textarea {
+    @apply rounded-none bg-muted/30 border-2 border-transparent;
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+  }
+
+  input[type="text"]:focus-visible,
+  input[type="email"]:focus-visible,
+  input[type="password"]:focus-visible,
+  input[type="search"]:focus-visible,
+  input[type="url"]:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none border-2 border-ring bg-background;
+  }
+
+  ::placeholder {
+    @apply text-muted-foreground/40;
+  }
+}

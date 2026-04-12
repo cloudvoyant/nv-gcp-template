@@ -71,6 +71,50 @@ resource "google_firestore_database" "app" {
   depends_on = [google_project_service.firestore]
 }
 
+# Composite index: uploads by user, newest first
+resource "google_firestore_index" "uploads_by_user" {
+  project    = var.gcp_project_id
+  database   = google_firestore_database.app.name
+  collection = "uploads"
+
+  fields {
+    field_path = "userId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "uploadedAt"
+    order      = "DESCENDING"
+  }
+
+  fields {
+    field_path = "__name__"
+    order      = "DESCENDING"
+  }
+}
+
+# Composite index: E2E teardown — find uploads by userId + filename range
+resource "google_firestore_index" "uploads_by_user_filename" {
+  project    = var.gcp_project_id
+  database   = google_firestore_database.app.name
+  collection = "uploads"
+
+  fields {
+    field_path = "userId"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "filename"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "__name__"
+    order      = "ASCENDING"
+  }
+}
+
 # Cloud Run service account
 resource "google_service_account" "cloud_run" {
   project      = var.gcp_project_id
@@ -101,6 +145,14 @@ resource "google_project_iam_member" "cloud_run_datastore" {
   project = var.gcp_project_id
   role    = "roles/datastore.user"
   member  = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+# Allow Cloud Run SA to sign blobs as itself — required for GCS v4 signed URL generation.
+# Without this, generateSignedUploadUrl() fails on Cloud Run with ADC.
+resource "google_service_account_iam_member" "cloud_run_token_creator" {
+  service_account_id = google_service_account.cloud_run.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.cloud_run.email}"
 }
 
 # Cloud Run v2 service (only deployed when an image is provided)
@@ -151,6 +203,11 @@ resource "google_cloud_run_v2_service" "app" {
       env {
         name  = "ENVIRONMENT"
         value = var.environment_name
+      }
+
+      env {
+        name  = "FIRESTORE_DATABASE_ID"
+        value = google_firestore_database.app.name
       }
     }
 

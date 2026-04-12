@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* include project name in non-prod domain pattern
+- include project name in non-prod domain pattern
 
 Without the project name, all projects using this template would
 compete for the same subdomain (e.g., dev.cloudvoyant.io), causing
@@ -13,33 +13,33 @@ project.env.base_domain.
 
 ### Bug Fixes
 
-* set default base domain to cloudvoyant.io
+- set default base domain to cloudvoyant.io
 
 ## [1.2.5](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.4...v1.2.5) (2026-02-20)
 
 ### Bug Fixes
 
-* upload release assets via semantic-release instead of gh cli
+- upload release assets via semantic-release instead of gh cli
 
 GitHub marks releases immutable after publishing, preventing
 gh release upload from adding assets. Instead, build dist/ before
-running semantic-release so @semantic-release/github uploads dist/*
+running semantic-release so @semantic-release/github uploads dist/\*
 atomically when creating the release.
 
 ## [1.2.4](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.3...v1.2.4) (2026-02-20)
 
 ### Bug Fixes
 
-* use dist/* glob for release asset upload
+- use dist/\* glob for release asset upload
 
-dist/**/* requires globstar and doesn't match files directly in
-dist/ without it. Using dist/* correctly matches dist/artifact.txt.
+dist/\*_/_ requires globstar and doesn't match files directly in
+dist/ without it. Using dist/\* correctly matches dist/artifact.txt.
 
 ## [1.2.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.2...v1.2.3) (2026-02-20)
 
 ### Bug Fixes
 
-* configure git auth before semantic-release to fix tag push
+- configure git auth before semantic-release to fix tag push
 
 Sets the git remote URL with GITHUB_TOKEN credentials so that
 semantic-release's internal `git push --tags` uses authenticated
@@ -49,7 +49,7 @@ HTTPS instead of relying on the credential helper set by checkout.
 
 ### Bug Fixes
 
-* replace softprops release action with gh release upload
+- replace softprops release action with gh release upload
 
 softprops/action-gh-release@v1 fails with "Cannot upload assets to
 an immutable release" because @semantic-release/github already
@@ -60,71 +60,69 @@ attach dist artifacts to the pre-existing release.
 
 ### Bug Fixes
 
-* restore build-prod stub for Artifact Registry publish step
+- restore build-prod stub for Artifact Registry publish step
 
 ## [1.2.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.2...v1.2.0) (2026-02-20)
 
 ### Features
 
-* adopt readership improvements into template
+- adopt readership improvements into template
 
-- CI/CD: concurrency, deployment tracking, split docker steps,
+* CI/CD: concurrency, deployment tracking, split docker steps,
   release/deploy job split, amd64 platform
-- Justfile: SERVICE abstraction, docker-login, get-url,
+* Justfile: SERVICE abstraction, docker-login, get-url,
   force-redeploy, TF devops vars, pnpm recipes
-- Docker: dockerfiles/ split (base/web/dev), apt HTTPS workaround,
+* Docker: dockerfiles/ split (base/web/dev), apt HTTPS workaround,
   .dockerignore, github-cli devcontainer
-- Infra: nv-fullstack-app module (Cloud Run + Firestore + IAM),
+* Infra: nv-fullstack-app module (Cloud Run + Firestore + IAM),
   enriched environment variables and outputs
-- Scripts: check_gcloud_auth, pnpm as required dep, NodeSource
+* Scripts: check_gcloud_auth, pnpm as required dep, NodeSource
   for Node.js 22 in install_node
-- App: minimal SvelteKit workspace (apps/web) with health endpoint
+* App: minimal SvelteKit workspace (apps/web) with health endpoint
 
 ## [1.1.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.1...v1.1.2) (2026-01-11)
 
 ### Bug Fixes
 
-* scaffodling correctly removes redundant template specific files. justfile show/hide presevred on scaffolding
+- scaffodling correctly removes redundant template specific files. justfile show/hide presevred on scaffolding
 
 ## [1.1.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.1.0...v1.1.1) (2026-01-11)
 
 ### Bug Fixes
 
-* dockerfile modifications for service deployment
+- dockerfile modifications for service deployment
 
-* dockerfile modifications for service deployment
+- dockerfile modifications for service deployment
 
 ## [1.1.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.3...v1.1.0) (2026-01-11)
 
 ### Features
 
-* added setup support for tf installation
-
+- added setup support for tf installation
 
 ### Bug Fixes
 
-* added commit hash to preview docker tags
+- added commit hash to preview docker tags
 
-* calling setup.sh directly to support direnv installation prior to justfile usage
+- calling setup.sh directly to support direnv installation prior to justfile usage
 
-* fixed docker tagged in ci, added prerelease versions to package publishing
+- fixed docker tagged in ci, added prerelease versions to package publishing
 
-* fixed docker tagged in ci, added prerelease versions to package publishing
+- fixed docker tagged in ci, added prerelease versions to package publishing
 
-* fixed docker tagged in ci, added prerelease versions to package publishing
+- fixed docker tagged in ci, added prerelease versions to package publishing
 
-* fixed docker tagged in ci, added prerelease versions to package publishing
+- fixed docker tagged in ci, added prerelease versions to package publishing
 
-* fixed docker tagged in ci, added prerelease versions to package publishing
+- fixed docker tagged in ci, added prerelease versions to package publishing
 
-* fixed test cleanup for integration tests ensuring tf created buckets are deleted during cleanup
+- fixed test cleanup for integration tests ensuring tf created buckets are deleted during cleanup
 
-* refactoried ci to use custom actions making pipelines more DRY, combined peview and ci pipelines
-
+- refactoried ci to use custom actions making pipelines more DRY, combined peview and ci pipelines
 
 ### Documentation
 
-* updated architecture, design and templates for readability
+- updated architecture, design and templates for readability
 
 ## [1.0.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.0.2...v1.0.3) (2026-01-08)
 
