@@ -8,10 +8,12 @@ ARG PROJECT=mise-app-template
 # ---- Stage 1: Builder ----
 FROM ${PROJECT}-base:local AS builder
 
+# Re-declare ARG after FROM so it is available in RUN commands
+ARG PROJECT=mise-app-template
 WORKDIR /app
 
-# Build production artifacts
-RUN mise run build-prod
+# Build the SvelteKit web app
+RUN pnpm --filter "@${PROJECT}/web" build
 
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
