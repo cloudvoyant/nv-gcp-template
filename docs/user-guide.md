@@ -195,7 +195,7 @@ Commit convention:
 git commit -m "feat: add cloud storage module"     # Minor bump
 git commit -m "fix: resolve auth timeout"          # Patch bump
 git commit -m "docs: update deployment guide"      # Patch bump
-git commit -m "feat!: redesign API"                # Minor bump (breaking→minor while at 0.x)
+git commit -m "feat!: redesign API"                # Major bump
 ```
 
 ### Manual Deployment (Stage/Prod)
