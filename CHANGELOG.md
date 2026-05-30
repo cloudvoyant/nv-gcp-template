@@ -1,3 +1,9 @@
+## [1.4.7](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.6...v1.4.7) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** use one-liner python to avoid Dockerfile parse error on import
+
 ## [1.4.6](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.5...v1.4.6) (2026-05-30)
 
 ### Bug Fixes
