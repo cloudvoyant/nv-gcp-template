@@ -1,3 +1,9 @@
+## [1.4.4](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.3...v1.4.4) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** add --legacy flag to pnpm deploy for pnpm v10 compatibility
+
 ## [1.4.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.2...v1.4.3) (2026-05-30)
 
 ### Bug Fixes
