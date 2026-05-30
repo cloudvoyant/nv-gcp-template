@@ -15,18 +15,29 @@ WORKDIR /app
 # Build the SvelteKit web app
 RUN pnpm --filter "@${PROJECT}/web" build
 
+# Generate a runtime package.json — strip workspace:* entries since those libs
+# are TypeScript-only and already bundled by Vite into the server output.
+RUN python3 -c "
+import json
+with open('apps/web/package.json') as f:
+    pkg = json.load(f)
+deps = {k: v for k, v in (pkg.get('dependencies') or {}).items() if not v.startswith('workspace:')}
+with open('runtime-package.json', 'w') as f:
+    json.dump({'type': 'module', 'dependencies': deps}, f)
+"
+
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
 # Copy the built output from builder (apps/web/build per svelte.config.js).
-# The adapter-node-generated build/package.json lists only real npm deps —
-# workspace packages are bundled by Vite and do not appear here.
+# Workspace packages (@mise-app-template/*) are TypeScript libs bundled by Vite —
+# they do not appear in the runtime deps.
 COPY --from=builder /app/apps/web/build ./build
-COPY --from=builder /app/apps/web/build/package.json ./package.json
+COPY --from=builder /app/runtime-package.json ./package.json
 
-# Install only the runtime deps listed in the adapter-generated package.json
+# Install only the real npm deps (no workspace:* entries)
 RUN npm install --omit=dev --ignore-scripts
 
 ENV NODE_ENV=production
