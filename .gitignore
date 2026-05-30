@@ -147,3 +147,6 @@ apps/web/e2e/.auth/storageState.json
 # mise local config (developer overrides)
 mise.local.toml
 .mise.local.toml
+
+# mise binary path cache (auto-generated)
+mise/
