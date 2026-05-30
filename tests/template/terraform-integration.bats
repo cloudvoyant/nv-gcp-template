@@ -25,10 +25,9 @@ setup() {
     export TEST_WORKSPACE="tf-test-$(date +%s)"
     echo "# Test workspace: $TEST_WORKSPACE" >&3
 
-    # Use the dev image (always exists after a release) unless caller overrides.
-    # tf-apply would otherwise look for a non-existent workspace-tagged image.
-    local registry="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}"
-    export TF_VAR_app_image="${TF_VAR_app_image:-${registry}/${PROJECT}-web:dev}"
+    # Use a known-good Cloud Run test image unless caller overrides.
+    # tf-apply uses the workspace name as the image tag, which won't exist for ephemeral test workspaces.
+    export TF_VAR_app_image="${TF_VAR_app_image:-gcr.io/cloudrun/hello}"
 }
 
 teardown() {
