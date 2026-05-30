@@ -1,3 +1,13 @@
+## [1.4.6](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.5...v1.4.6) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** generate runtime package.json from web app deps, excluding workspace entries
+
+adapter-node does not produce a build/package.json. Instead, generate one in
+the builder stage by filtering out workspace:* deps — those TypeScript libs are
+already bundled by Vite into the server output and are not needed at runtime.
+
 ## [1.4.5](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.4...v1.4.5) (2026-05-30)
 
 ### Bug Fixes
