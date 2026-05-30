@@ -11,6 +11,9 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
+    "@mise-app-template/auth": "workspace:*",
+    "@mise-app-template/storage": "workspace:*",
+    "@mise-app-template/ui": "workspace:*",
     "@playwright/test": "^1.58.2",
     "@sveltejs/adapter-node": "^5.5.1",
     "@sveltejs/kit": "^2.49.1",
@@ -28,9 +31,6 @@
     "vite": "^7.2.6"
   },
   "dependencies": {
-    "@google-cloud/firestore": "^8.3.0",
-    "@mise-app-template/auth": "workspace:*",
-    "@mise-app-template/storage": "workspace:*",
-    "@mise-app-template/ui": "workspace:*"
+    "@google-cloud/firestore": "^8.3.0"
   }
 }
