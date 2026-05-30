@@ -44,9 +44,9 @@ teardown() {
 
     # Verify essential platform files are present
     [ -f "$EXTRACT_DIR/README.md" ]
-    [ -f "$EXTRACT_DIR/.envrc.template" ]
-    [ -f "$EXTRACT_DIR/justfile" ]
-    [ -f "$EXTRACT_DIR/scripts/scaffold.sh" ]
+    [ -f "$EXTRACT_DIR/mise.toml" ]
+    [ -f "$EXTRACT_DIR/mise.local.toml.example" ]
+    [ -f "$EXTRACT_DIR/.mise-tasks/scaffold" ]
     [ -d "$EXTRACT_DIR/.claude" ]
 
     # Claude commands directory should contain README with plugin installation info
@@ -63,10 +63,10 @@ teardown() {
     [ -d "$EXTRACT_DIR/docs" ]
     [ ! -d "$EXTRACT_DIR/docs/migrations" ]
 
-    # scripts/ should exist with scaffold.sh but not platform-install.sh
-    [ -d "$EXTRACT_DIR/scripts" ]
-    [ -f "$EXTRACT_DIR/scripts/scaffold.sh" ]
-    [ ! -f "$EXTRACT_DIR/scripts/platform-install.sh" ]
+    # .mise-tasks/ should exist with key tasks
+    [ -d "$EXTRACT_DIR/.mise-tasks" ]
+    [ -f "$EXTRACT_DIR/.mise-tasks/install" ]
+    [ -f "$EXTRACT_DIR/.mise-tasks/build" ]
 }
 
 @test "validates all platform-specific files are excluded in one archive" {
