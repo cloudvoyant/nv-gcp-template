@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.1...v1.4.2) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** run pnpm web build in builder stage instead of build-prod
+
 ## [1.4.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.0...v1.4.1) (2026-05-30)
 
 ### Bug Fixes
