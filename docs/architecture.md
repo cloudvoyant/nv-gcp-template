@@ -158,6 +158,18 @@ Playwright tests live in `apps/web/e2e/`. The global setup and teardown hooks ha
 
 The resulting workspace name is used as both the Terraform workspace and the `environment` label on all GCP resources. This creates a direct, traceable link from branch → workspace → resources.
 
+**Persistent environment protection (breaking change in v1.4):** `mise run tf-destroy` refuses to run on `dev`, `stage`, or `prod` workspaces and exits with an error. These environments must be managed manually to prevent accidental data loss. The check happens before `tf-init`, failing fast without touching any state.
+
+**Firestore provisioning by workspace type:**
+
+| Workspace pattern | `is_ci` | `is_preview` | Firestore DB | `deletion_policy` |
+|---|---|---|---|---|
+| `ci-*` | true | true | Skipped (count=0) | — |
+| feature/bugfix (`proj-123`) | false | true | Created | `DELETE` — fully removed on `tf-destroy` |
+| `dev` / `stage` / `prod` | false | false | Created | `ABANDON` — terraform removes from state but leaves DB intact |
+
+CI workspaces (`ci-*`) skip Firestore entirely to avoid HTTP/2 connection timeouts that occur during the multi-minute GCP Firestore create/delete operations. Real preview workspaces get a dedicated Firestore database with `deletion_policy = "DELETE"` so no orphaned databases are left in GCP after `tf-destroy`.
+
 ### Component: .mise-tasks/
 
 - `.mise-tasks/utils.sh` — Shared logging (`log_info`, `log_success`, `log_error`, `log_warn`), `confirm` for destructive operations, `infer_terraform_workspace`, and cross-platform `sed_inplace`. Sourced by all other tasks (`#MISE hide=true`).

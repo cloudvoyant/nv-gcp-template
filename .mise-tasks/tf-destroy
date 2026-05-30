@@ -7,6 +7,13 @@ WORKSPACE_NAME="${1:-}"
 WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
 AUTO_APPROVE="${2:-}"
 
+# Refuse to destroy persistent named environments — data loss prevention
+if [[ " dev stage prod " =~ " ${WORKSPACE_NAME} " ]]; then
+    log_error "Refusing to destroy persistent environment '${WORKSPACE_NAME}'"
+    log_error "Persistent environments (dev/stage/prod) must be managed manually to prevent data loss."
+    exit 1
+fi
+
 # Run tf-init first
 mise run tf-init "${WORKSPACE_NAME}"
 

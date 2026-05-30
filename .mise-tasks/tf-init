@@ -21,6 +21,9 @@ log_info "Prefix: ${PREFIX}"
 log_info "Workspace: ${WORKSPACE_NAME}"
 
 cd infra/environments
+# Reset workspace selection before init so a stale .terraform/environment pointing
+# to a deleted workspace cannot trigger interactive prompts in non-TTY contexts.
+echo "default" > .terraform/environment 2>/dev/null || true
 terraform init \
     -backend-config="bucket=${BUCKET_NAME}" \
     -backend-config="prefix=${PREFIX}" \

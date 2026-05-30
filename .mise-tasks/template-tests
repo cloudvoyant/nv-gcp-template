@@ -6,9 +6,9 @@ if command -v bats >/dev/null 2>&1; then
     printf '\033[0;34mRunning template tests\033[0m\n'
     # Use parallel execution if GNU parallel is available
     if command -v parallel >/dev/null 2>&1; then
-        find template-tests/ -name "*.bats" -print0 | parallel -0 -j+0 bats {}
+        find tests/template/ -name "*.bats" -print0 | parallel -0 -j+0 bats {}
     else
-        bats template-tests/
+        bats tests/template/
     fi
 else
     printf '\033[0;31mbats not installed. Run: mise run setup --template\033[0m\n'

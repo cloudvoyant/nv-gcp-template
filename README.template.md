@@ -34,8 +34,7 @@ cp mise.local.toml.example mise.local.toml
 vim mise.local.toml
 
 # Authenticate with GCP
-gcloud auth login
-gcloud auth application-default login
+mise run gcp-login
 
 # Create Terraform backend (one-time)
 mise run tf-create-backend
@@ -87,7 +86,7 @@ Commit convention:
 git commit -m "feat: add cloud storage module"     # Minor bump
 git commit -m "fix: resolve auth timeout"          # Patch bump
 git commit -m "docs: update deployment guide"      # Patch bump
-git commit -m "feat!: redesign API"                # Major bump
+git commit -m "feat!: redesign API"                # Minor bump (breaking→minor while at 0.x)
 ```
 
 ### Manual Deployment

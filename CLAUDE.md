@@ -49,7 +49,7 @@ This style guide uses context tags for efficient loading. Rules are only loaded 
 **Safety:**
 
 - All scripts must start with `set -euo pipefail`
-- Source `./scripts/utils.sh` for shared utilities (`log_info`, `log_success`, `log_error`, `log_warn`)
+- Source `./.mise-tasks/utils.sh` for shared utilities (`log_info`, `log_success`, `log_error`, `log_warn`)
 - Use `confirm` utility before destructive operations
 
 **Variables:**

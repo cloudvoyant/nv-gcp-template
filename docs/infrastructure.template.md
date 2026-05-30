@@ -214,7 +214,7 @@ E2E_P1_PASSWORD=your_test_user_password
 Create or update E2E secrets:
 
 ```bash
-just setup-e2e-secrets
+mise run setup-e2e-secrets
 ```
 
 Or update manually via GCP Console → Secret Manager.
@@ -441,8 +441,7 @@ mise run tf-destroy proj-123 --auto-approve
 Ensure gcloud is authenticated:
 
 ```bash
-gcloud auth login
-gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
+mise run gcp-login
 ```
 
 ### Permission Denied Errors

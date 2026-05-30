@@ -286,7 +286,7 @@ log_info "Copying platform files to destination"
 rsync -a \
     --exclude='.git' \
     --exclude='.nv' \
-    --exclude='template-tests/' \
+    --exclude='tests/' \
     --exclude='docs/migrations/' \
     --exclude='docs/decisions/' \
     --exclude='docs/architecture.md' \
@@ -301,7 +301,7 @@ log_success "Platform files copied"
 # REMOVE TEMPLATE-SPECIFIC ARTIFACTS FROM SCAFFOLDED PROJECT ------------------
 log_info "Removing template-specific artifacts"
 
-ITEMS_TO_REMOVE=("template-tests/" ".codevoyant/" "justfile")
+ITEMS_TO_REMOVE=("tests/" ".codevoyant/" "justfile")
 # Only remove .claude/ here if not keeping it; the KEEP_CLAUDE section handles the rest
 if [ "${KEEP_CLAUDE}" = false ]; then
     ITEMS_TO_REMOVE+=(".claude/")
@@ -325,15 +325,15 @@ log_info "Removing template-specific files"
 
 log_success "Template-specific files removed"
 
-# CLEAN UP TEMPLATE TESTS DIRECTORY -------------------------------------------
-log_info "Cleaning template-tests directory"
+# CLEAN UP TESTS DIRECTORY ----------------------------------------------------
+log_info "Cleaning tests directory"
 
-# Remove template-tests/ directory entirely (excluded from rsync, but may exist in-place)
-if [ -d "${DEST_DIR}/template-tests" ]; then
-    rm -rf "${DEST_DIR}/template-tests"
-    log_success "Removed template-tests/ from scaffolded project"
+# Remove tests/ directory entirely (excluded from rsync, but may exist in-place)
+if [ -d "${DEST_DIR}/tests" ]; then
+    rm -rf "${DEST_DIR}/tests"
+    log_success "Removed tests/ from scaffolded project"
 else
-    log_info "No template-tests directory found"
+    log_info "No tests directory found"
 fi
 
 # REPLACE TEMPLATE NAME WITH PROJECT NAME IN ALL VARIANTS ---------------------

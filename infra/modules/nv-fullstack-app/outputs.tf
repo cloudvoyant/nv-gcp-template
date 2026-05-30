@@ -25,7 +25,7 @@ output "public_url" {
 output "mongodb_uri" {
   description = "MongoDB-compatible connection URI for Firestore"
   sensitive   = true
-  value       = "mongodb+srv://${var.gcp_project_id}.firestore.googleapis.com:443/${google_firestore_database.app.name}"
+  value       = "mongodb+srv://${var.gcp_project_id}.firestore.googleapis.com:443/${local.firestore_database_name}"
 }
 
 output "domain_mapping_status" {

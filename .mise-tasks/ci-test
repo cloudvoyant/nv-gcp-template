@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#MISE description="Run CI flow integration tests against real GCP (preview, dev, cleanup)"
+set -euo pipefail
+
+if ! command -v bats >/dev/null 2>&1; then
+    printf '\033[0;31mbats not installed. Run: mise install\033[0m\n'
+    exit 1
+fi
+
+printf '\033[0;34mRunning CI flow tests\033[0m\n'
+printf '\033[1;33mNote: these tests provision real GCP infrastructure and will incur costs.\033[0m\n'
+printf '\033[1;33mSet SKIP_TF_TESTS=1 to skip, RUN_DOCKER_TESTS=1 to include docker steps.\033[0m\n'
+echo ""
+
+SUITE="${1:-}"
+
+if [ -n "${SUITE}" ]; then
+    # Run a specific flow: mise run ci-test preview|dev|cleanup
+    bats "tests/ci/${SUITE}-flow.bats"
+else
+    # Run all CI flow tests
+    bats tests/ci/
+fi

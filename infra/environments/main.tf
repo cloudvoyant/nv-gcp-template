@@ -84,8 +84,12 @@ module "fullstack_app" {
   enable_domain_mapping = contains(["dev", "stage", "prod"], var.environment_name)
 }
 
-# Grant Cloud Run SA access to the shared public CDN bucket (managed by infra/shared)
+# Grant Cloud Run SA access to the shared public CDN bucket (managed by infra/shared).
+# Only applied for named environments (dev/stage/prod) where the shared bucket exists.
+# Ephemeral preview and CI workspaces skip this to avoid failing when the shared bucket
+# hasn't been provisioned yet.
 resource "google_storage_bucket_iam_member" "public_bucket_service_account" {
+  count  = contains(["dev", "stage", "prod"], var.environment_name) ? 1 : 0
   bucket = "${var.project}-public" # shared bucket, lives in infra/shared/
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${module.fullstack_app.service_account_email}"

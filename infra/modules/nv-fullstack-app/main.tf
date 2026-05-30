@@ -1,13 +1,21 @@
 locals {
   service_name = "${var.project}-${var.environment_name}"
 
-  # GCP service account IDs must be 6-30 chars. Truncate to ensure compliance.
-  # Format: <project>-<env>-run — trim to 28 chars then add "-r" suffix if needed.
+  # GCP service account IDs must be 6-30 chars.
+  # For long names (ephemeral workspaces), derive from the environment name directly
+  # so the unique timestamp suffix is preserved — avoiding collisions across CI runs.
   _sa_raw    = "${var.project}-${var.environment_name}-run"
-  sa_id      = length(local._sa_raw) <= 30 ? local._sa_raw : "${substr(local._sa_raw, 0, 27)}-r"
+  sa_id      = length(local._sa_raw) <= 30 ? local._sa_raw : substr("${var.environment_name}-r", 0, 30)
 
   is_prod    = var.environment_name == "prod"
   is_preview = !contains(["dev", "stage", "prod"], var.environment_name)
+  # CI workspaces (ci-*) skip Firestore entirely to avoid HTTP/2 timeouts during rapid cycling
+  is_ci      = length(regexall("^ci-", var.environment_name)) > 0
+
+  # CI workspaces fall back to "(default)"; real preview/named envs get their own DB
+  firestore_database_name = local.is_ci ? "(default)" : (
+    local.is_prod ? "(default)" : "${var.project}-${var.environment_name}"
+  )
 
   domain = var.custom_domain != "" ? var.custom_domain : (
     local.is_prod ? var.base_domain : "${var.project}.${var.environment_name}.${var.base_domain}"
@@ -59,10 +67,13 @@ resource "google_project_service" "siteverification" {
   disable_on_destroy = false
 }
 
-# Firestore database
+# Firestore database — skipped for CI workspaces (ci-*) to avoid HTTP/2 timeouts.
+# Real preview workspaces get their own DB with DELETE policy so it's torn down on destroy.
+# Named envs (dev/stage/prod) use ABANDON so terraform doesn't delete live data.
 resource "google_firestore_database" "app" {
+  count       = local.is_ci ? 0 : 1
   project     = var.gcp_project_id
-  name        = local.is_prod ? "(default)" : "${var.project}-${var.environment_name}"
+  name        = local.firestore_database_name
   location_id = var.gcp_region
   type        = "FIRESTORE_NATIVE"
 
@@ -72,9 +83,12 @@ resource "google_firestore_database" "app" {
 }
 
 # Composite index: uploads by user, newest first
+# Skipped for CI workspaces — index creation is slow and causes HTTP/2
+# connection drops on long-running GCP operations; not needed for ephemeral CI envs.
 resource "google_firestore_index" "uploads_by_user" {
+  count      = local.is_ci ? 0 : 1
   project    = var.gcp_project_id
-  database   = google_firestore_database.app.name
+  database   = google_firestore_database.app[0].name
   collection = "uploads"
 
   fields {
@@ -95,8 +109,9 @@ resource "google_firestore_index" "uploads_by_user" {
 
 # Composite index: E2E teardown — find uploads by userId + filename range
 resource "google_firestore_index" "uploads_by_user_filename" {
+  count      = local.is_ci ? 0 : 1
   project    = var.gcp_project_id
-  database   = google_firestore_database.app.name
+  database   = google_firestore_database.app[0].name
   collection = "uploads"
 
   fields {
@@ -207,7 +222,7 @@ resource "google_cloud_run_v2_service" "app" {
 
       env {
         name  = "FIRESTORE_DATABASE_ID"
-        value = google_firestore_database.app.name
+        value = local.firestore_database_name
       }
     }
 

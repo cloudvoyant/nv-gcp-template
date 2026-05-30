@@ -33,10 +33,10 @@ A GCP infrastructure template using Terraform for multi-environment deployments 
 # Option 1: Nedavellir CLI
 nv create your-project --template mise-app-template
 
-# Option 2: GitHub template + scaffold script
+# Option 2: GitHub template + scaffold
 git clone <your-new-repo>
 cd <your-new-repo>
-bash scripts/scaffold.sh --project your-project
+mise run scaffold -- --project your-project
 ```
 
 ### Setup
@@ -50,8 +50,7 @@ cp mise.local.toml.example mise.local.toml
 vim mise.local.toml
 
 # Authenticate with GCP
-gcloud auth login
-gcloud auth application-default login
+mise run gcp-login
 
 # Create Terraform backend (one-time)
 mise run tf-create-backend

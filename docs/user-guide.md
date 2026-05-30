@@ -71,8 +71,7 @@ For deployed environments, store these values in GCP Secret Manager (see step 5)
 Authenticate locally:
 
 ```bash
-gcloud auth login
-gcloud auth application-default login
+mise run gcp-login
 ```
 
 Create a CI/CD service account and add it to GitHub:
@@ -196,7 +195,7 @@ Commit convention:
 git commit -m "feat: add cloud storage module"     # Minor bump
 git commit -m "fix: resolve auth timeout"          # Patch bump
 git commit -m "docs: update deployment guide"      # Patch bump
-git commit -m "feat!: redesign API"                # Major bump
+git commit -m "feat!: redesign API"                # Minor bump (breaking→minor while at 0.x)
 ```
 
 ### Manual Deployment (Stage/Prod)
@@ -262,7 +261,7 @@ mise run test-e2e stage
 - **Global setup** logs in as the test user and saves browser auth state to `apps/web/e2e/.auth/p1.json`
 - **Tests** use `test.use({ storageState })` to reuse the saved session — no repeated logins
 - **Global teardown** deletes all Firestore records whose `filename` starts with `[E2E]`
-- **Seed data** for upload-related tests can be created via `just seed-e2e`
+- **Seed data** for upload-related tests can be created via `mise run seed-e2e`
 
 ### Adding E2E Tests
 
@@ -401,11 +400,10 @@ mise run tf-destroy proj-123 --auto-approve
 
 ### Docker Push Authentication Failed
 
-Ensure gcloud is authenticated and the Docker credential helper is configured:
+Ensure gcloud is authenticated:
 
 ```bash
-gcloud auth login
-gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
+mise run gcp-login
 ```
 
 ### Package Upload Failed
