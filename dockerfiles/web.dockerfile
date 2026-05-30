@@ -15,7 +15,7 @@ WORKDIR /app
 # Build the SvelteKit web app and produce a standalone production deployment.
 # pnpm deploy resolves workspace:* deps and copies only prod node_modules.
 RUN pnpm --filter "@${PROJECT}/web" build && \
-    pnpm --filter "@${PROJECT}/web" deploy --prod /tmp/web-deploy
+    pnpm --filter "@${PROJECT}/web" deploy --legacy --prod /tmp/web-deploy
 
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
