@@ -14,7 +14,7 @@ GCP_REGION = "us-east1"
 
 [tools]
 node = "20"
-pnpm = "latest"
+pnpm = "10"
 terraform = "1"
 bats = "latest"
 shellcheck = "latest"
