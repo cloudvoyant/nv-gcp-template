@@ -13,7 +13,7 @@ RUN apt-get update && \
 ENV MISE_DATA_DIR=/usr/local/mise
 ENV MISE_CONFIG_DIR=/usr/local/mise-config
 ENV PATH="/usr/local/mise/shims:/usr/local/mise/bin:${PATH}"
-RUN curl -fsSL https://mise.run | sh && mise --version
+RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/mise/bin/mise sh && mise --version
 
 WORKDIR /app
 COPY . .
