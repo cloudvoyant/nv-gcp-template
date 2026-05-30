@@ -11,6 +11,14 @@
     "prettier": "^3.8.1",
     "prettier-plugin-svelte": "^3.4.1",
     "tsx": "^4.19.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "semantic-release": "^24.0.0",
+    "@semantic-release/changelog": "^6.0.0",
+    "@semantic-release/commit-analyzer": "^13.0.0",
+    "@semantic-release/exec": "^6.0.0",
+    "@semantic-release/git": "^10.0.0",
+    "@semantic-release/github": "^10.0.0",
+    "@semantic-release/release-notes-generator": "^14.0.0",
+    "conventional-changelog-conventionalcommits": "^8.0.0"
   }
 }
