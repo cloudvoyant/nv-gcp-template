@@ -1,3 +1,9 @@
+## [1.4.3](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.2...v1.4.3) (2026-05-30)
+
+### Bug Fixes
+
+* revert breaking->minor rule and fix Docker runtime dep install via pnpm deploy
+
 ## [1.4.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.1...v1.4.2) (2026-05-30)
 
 ### Bug Fixes
