@@ -12,20 +12,22 @@ FROM ${PROJECT}-base:local AS builder
 ARG PROJECT=mise-app-template
 WORKDIR /app
 
-# Build the SvelteKit web app and produce a standalone production deployment.
-# pnpm deploy resolves workspace:* deps and copies only prod node_modules.
-RUN pnpm --filter "@${PROJECT}/web" build && \
-    pnpm --filter "@${PROJECT}/web" deploy --legacy --prod /tmp/web-deploy
+# Build the SvelteKit web app
+RUN pnpm --filter "@${PROJECT}/web" build
 
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
-# Copy the built output and resolved production node_modules from builder.
-# node_modules come from pnpm deploy (no workspace: protocol, no devDeps).
+# Copy the built output from builder (apps/web/build per svelte.config.js).
+# The adapter-node-generated build/package.json lists only real npm deps —
+# workspace packages are bundled by Vite and do not appear here.
 COPY --from=builder /app/apps/web/build ./build
-COPY --from=builder /tmp/web-deploy/node_modules ./node_modules
+COPY --from=builder /app/apps/web/build/package.json ./package.json
+
+# Install only the runtime deps listed in the adapter-generated package.json
+RUN npm install --omit=dev --ignore-scripts
 
 ENV NODE_ENV=production
 ENV PORT=8080
