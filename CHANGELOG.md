@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.0...v1.4.1) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** install mise to PATH location via MISE_INSTALL_PATH
+
 ## [1.4.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.3.2...v1.4.0) (2026-05-30)
 
 ### ⚠ BREAKING CHANGES
