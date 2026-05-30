@@ -34,7 +34,7 @@ jobs:
       - name: Extract Issue ID
         id: issue
         run: |
-          source .mise-tasks/utils.sh
+          source mise-tasks/utils.sh
           # For PR close, use head branch; for delete, use ref name
           BRANCH_NAME="${{ github.event.pull_request.head.ref || github.event.ref }}"
           ISSUE_ID=$(extract_issue_id "${BRANCH_NAME}")

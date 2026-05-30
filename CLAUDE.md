@@ -49,7 +49,7 @@ This style guide uses context tags for efficient loading. Rules are only loaded 
 **Safety:**
 
 - All scripts must start with `set -euo pipefail`
-- Source `./.mise-tasks/utils.sh` for shared utilities (`log_info`, `log_success`, `log_error`, `log_warn`)
+- Source `./mise-tasks/utils.sh` for shared utilities (`log_info`, `log_success`, `log_error`, `log_warn`)
 - Use `confirm` utility before destructive operations
 
 **Variables:**
@@ -128,7 +128,7 @@ body (optional)
 3. `mise run tf-apply [WORKSPACE]` - Apply (prompts for confirmation unless `--auto-approve`)
 4. `mise run tf-destroy [WORKSPACE]` - Destroy (always confirms unless `--auto-approve`)
 
-**Workspace naming:** Auto-inferred from branch name via `infer_terraform_workspace()` in `.mise-tasks/utils.sh`
+**Workspace naming:** Auto-inferred from branch name via `infer_terraform_workspace()` in `mise-tasks/utils.sh`
 
 **Module location:** `infra/modules/` — add reusable modules here
 **Environment config:** `infra/environments/` — workspace-specific configuration
@@ -152,7 +152,7 @@ body (optional)
 **Test organization:**
 
 - Test files in `template-tests/` directory with `.bats` extension
-- Source `.mise-tasks/utils.sh` in `setup()` for utility access
+- Source `mise-tasks/utils.sh` in `setup()` for utility access
 - Use descriptive test names: `@test "function: describes expected behavior"`
 - Test both happy path and edge cases (empty input, invalid format, etc.)
 

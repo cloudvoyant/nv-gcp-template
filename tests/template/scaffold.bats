@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for .mise-tasks/scaffold (was: scripts/scaffold.sh)
+# Tests for mise-tasks/scaffold (was: scripts/scaffold.sh)
 #
 # Install bats: mise run install
 # Run: SKIP_TF_TESTS=1 mise run test
@@ -51,7 +51,7 @@ teardown() {
 @test "scaffold defaults to project root when --src and --dest not provided" {
     # When run without args, should use current directory as default
     # We'll run with --non-interactive to avoid prompts
-    run bash .mise-tasks/scaffold --non-interactive
+    run bash mise-tasks/scaffold --non-interactive
 
     # Should succeed (defaults to current dir for both src and dest)
     [ "$status" -eq 0 ]
@@ -59,14 +59,14 @@ teardown() {
 }
 
 @test "scaffold validates source directory exists" {
-    run bash .mise-tasks/scaffold --src /nonexistent --dest ../..
+    run bash mise-tasks/scaffold --src /nonexistent --dest ../..
 
     [ "$status" -eq 1 ]
     [[ "$output" == *"Source directory does not exist"* ]]
 }
 
 @test "scaffold validates destination directory exists" {
-    run bash .mise-tasks/scaffold --src . --dest /nonexistent
+    run bash mise-tasks/scaffold --src . --dest /nonexistent
 
     [ "$status" -eq 1 ]
     [[ "$output" == *"Destination directory does not exist"* ]]
@@ -74,7 +74,7 @@ teardown() {
 
 @test "validates project name in non-interactive mode" {
     # Rejects invalid characters (spaces)
-    run bash .mise-tasks/scaffold \
+    run bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -84,7 +84,7 @@ teardown() {
     [[ "$output" == *"Invalid project name"* ]]
 
     # Accepts valid characters
-    run bash .mise-tasks/scaffold \
+    run bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -95,7 +95,7 @@ teardown() {
 }
 
 @test "configures mise.toml with project name and resets version.txt" {
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -117,7 +117,7 @@ teardown() {
     touch "$DEST_DIR/.claude/plan.md" "$DEST_DIR/.claude/workflows.md" "$DEST_DIR/.claude/CLAUDE.md"
 
     # By default (without --keep-claude), removes entire .claude directory
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -126,7 +126,7 @@ teardown() {
     [ ! -d "$DEST_DIR/.claude" ]
 
     # With --keep-claude, keeps .claude directory with only upgrade.md and README.md
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -137,7 +137,7 @@ teardown() {
 }
 
 @test "removes platform-specific files from destination" {
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -157,7 +157,7 @@ teardown() {
 }
 
 @test "replaces README.md with template" {
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -184,7 +184,7 @@ teardown() {
 }
 
 @test "shows success message on completion" {
-    run bash .mise-tasks/scaffold \
+    run bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -206,7 +206,7 @@ teardown() {
         --exclude='.nv' \
         . "$NEW_DEST/"
 
-    run bash .mise-tasks/scaffold \
+    run bash mise-tasks/scaffold \
         --src . \
         --dest "$NEW_DEST" \
         --non-interactive
@@ -227,7 +227,7 @@ teardown() {
     chmod 000 "$SRC_DIR/README.template.md"
 
     # Try to run scaffold (should fail during README template substitution)
-    run bash .mise-tasks/scaffold \
+    run bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -246,7 +246,7 @@ teardown() {
 }
 
 @test "removes backup directory on success" {
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -257,7 +257,7 @@ teardown() {
 }
 
 @test "replaces template name in all case variants across all files" {
-    bash .mise-tasks/scaffold \
+    bash mise-tasks/scaffold \
         --src . \
         --dest ../.. \
         --non-interactive \
@@ -297,7 +297,7 @@ teardown() {
 
 @test "scaffold processes install.sh.template when --non-interactive (defaults to no install.sh)" {
     # When run with --non-interactive, install.sh.template should be removed (default: no install.sh)
-    run bash .mise-tasks/scaffold --src "$SRC_DIR" --dest "$DEST_DIR" --non-interactive --project test-project
+    run bash mise-tasks/scaffold --src "$SRC_DIR" --dest "$DEST_DIR" --non-interactive --project test-project
 
     [ "$status" -eq 0 ]
 
@@ -310,7 +310,7 @@ teardown() {
 
 @test "scaffold with --keep-claude removes commands except upgrade.md" {
     # When run with --keep-claude, only upgrade.md and README.md should remain
-    run bash .mise-tasks/scaffold --src "$SRC_DIR" --dest "$DEST_DIR" --non-interactive --project test-project --keep-claude
+    run bash mise-tasks/scaffold --src "$SRC_DIR" --dest "$DEST_DIR" --non-interactive --project test-project --keep-claude
 
     [ "$status" -eq 0 ]
 

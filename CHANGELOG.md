@@ -86,8 +86,8 @@ for task running, environment configuration, and dev-tool dependency management.
 
 - Add mise.toml with [env] (PROJECT=mise-app-template, VERSION, GCP vars),
   [tools] (node 20, pnpm, terraform, bats, shellcheck, shfmt), and
-  [settings] (experimental=true for .mise-tasks/ auto-discovery)
-- Add .mise-tasks/ with 46 tasks replacing all justfile recipes
+  [settings] (experimental=true for mise-tasks/ auto-discovery)
+- Add mise-tasks/ with 46 tasks replacing all justfile recipes
 - Rewrite dockerfiles/base.dockerfile and web.dockerfile for mise-based 2-stage build
 - Remove .devcontainer/, dev.dockerfile, root Dockerfile
 - Update all 4 CI workflows and 2 composite actions to use mise

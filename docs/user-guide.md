@@ -305,7 +305,7 @@ mise run test
 After scaffolding, implement your own tests:
 
 1. Create test files in `template-tests/` with `.bats` extension
-2. Update `.mise-tasks/test` if needed
+2. Update `mise-tasks/test` if needed
 3. Tests run automatically in CI on every push
 
 ### Local Docker Operations
@@ -349,7 +349,7 @@ Toggle file visibility to reduce noise while working:
 # Hide infrastructure files — shows only: docs/, src/, template-tests/, .claude/, mise.toml, README.md
 mise run hide
 
-# Show all files including .github/, .vscode/, Dockerfile, .mise-tasks/, etc.
+# Show all files including .github/, .vscode/, Dockerfile, mise-tasks/, etc.
 mise run show
 ```
 
@@ -416,5 +416,5 @@ Check that the service account has the `artifactregistry.writer` role on the Dev
 
 - Review [architecture.md](architecture.md) for system design principles
 - Customize `infra/modules/` for your infrastructure needs
-- Update `.mise-tasks/deploy` for your deployment method
+- Update `mise-tasks/deploy` for your deployment method
 - Set up monitoring and alerting for your GCP resources

@@ -82,7 +82,7 @@ jobs:
       - name: Extract Issue ID
         id: issue
         run: |
-          source .mise-tasks/utils.sh
+          source mise-tasks/utils.sh
           ISSUE_ID=$(extract_issue_id "${GITHUB_REF#refs/heads/}")
           echo "issue_id=${ISSUE_ID}" >> $GITHUB_OUTPUT
           echo "Preview workspace: ${ISSUE_ID}"

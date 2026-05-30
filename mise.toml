@@ -20,5 +20,8 @@ bats = "latest"
 shellcheck = "latest"
 shfmt = "latest"
 
+[task_config]
+includes = ["mise-tasks"]
+
 [settings]
 experimental = true

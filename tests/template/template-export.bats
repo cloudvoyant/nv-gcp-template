@@ -46,7 +46,7 @@ teardown() {
     [ -f "$EXTRACT_DIR/README.md" ]
     [ -f "$EXTRACT_DIR/mise.toml" ]
     [ -f "$EXTRACT_DIR/mise.local.toml.example" ]
-    [ -f "$EXTRACT_DIR/.mise-tasks/scaffold" ]
+    [ -f "$EXTRACT_DIR/mise-tasks/scaffold" ]
     [ -d "$EXTRACT_DIR/.claude" ]
 
     # Claude commands directory should contain README with plugin installation info
@@ -63,10 +63,10 @@ teardown() {
     [ -d "$EXTRACT_DIR/docs" ]
     [ ! -d "$EXTRACT_DIR/docs/migrations" ]
 
-    # .mise-tasks/ should exist with key tasks
-    [ -d "$EXTRACT_DIR/.mise-tasks" ]
-    [ -f "$EXTRACT_DIR/.mise-tasks/install" ]
-    [ -f "$EXTRACT_DIR/.mise-tasks/build" ]
+    # mise-tasks/ should exist with key tasks
+    [ -d "$EXTRACT_DIR/mise-tasks" ]
+    [ -f "$EXTRACT_DIR/mise-tasks/install" ]
+    [ -f "$EXTRACT_DIR/mise-tasks/build" ]
 }
 
 @test "validates all platform-specific files are excluded in one archive" {

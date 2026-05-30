@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE hide=true
-# Shared utility functions for .mise-tasks/ scripts.
+# Shared utility functions for mise-tasks/ scripts.
 # Source this file: source "$(dirname "$0")/utils.sh"
 
 set -euo pipefail

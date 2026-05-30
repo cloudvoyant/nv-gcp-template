@@ -112,7 +112,7 @@ Deploy to stage/prod via GitHub Actions:
 ├── src/               # Source code (customize)
 ├── test/              # Test files (customize)
 ├── mise.toml          # Dev tools and environment configuration
-├── .mise-tasks/       # Task scripts (mise run <task>)
+├── mise-tasks/       # Task scripts (mise run <task>)
 ├── Dockerfile         # Container definition
 ├── docker-compose.yml # Local development
 └── README.md          # Project overview
@@ -134,7 +134,7 @@ COPY . .
 CMD ["python", "src/main.py"]
 ```
 
-Update `.mise-tasks/build-prod`:
+Update `mise-tasks/build-prod`:
 
 ```bash
 #!/usr/bin/env bash

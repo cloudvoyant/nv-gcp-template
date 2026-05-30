@@ -121,7 +121,7 @@ mise install
 claude /adapt    # Guided customization (requires Claude CLI)
 ```
 
-Update `Dockerfile` and `.mise-tasks/build-prod` for your language/framework.
+Update `Dockerfile` and `mise-tasks/build-prod` for your language/framework.
 
 ## References
 

@@ -308,7 +308,7 @@ CMD ["node", "src/index.js"]
 
 ### Package Publishing
 
-Update `build-prod` task in `.mise-tasks/build-prod`:
+Update `build-prod` task in `mise-tasks/build-prod`:
 
 ```bash
 # Python example
@@ -350,7 +350,7 @@ Optionally publish to language-specific registries (npm, PyPI, etc.) by modifyin
 │   ├── shared/            # CDN + public bucket (one-time setup)
 │   ├── environments/      # Per-workspace Cloud Run + Firestore + bucket
 │   └── modules/           # Reusable Terraform modules
-├── .mise-tasks/           # All task scripts (auto-discovered by mise)
+├── mise-tasks/           # All task scripts (auto-discovered by mise)
 ├── mise.toml              # Tool versions, environment, task runner config
 └── README.md
 ```
@@ -367,7 +367,7 @@ mise run test
 After scaffolding, implement your own tests:
 
 1. Create test files in your preferred test directory
-2. Update the `test` task in `.mise-tasks/test`
+2. Update the `test` task in `mise-tasks/test`
 3. Tests run automatically in CI
 
 ### Viewing Hidden Files (VS Code)

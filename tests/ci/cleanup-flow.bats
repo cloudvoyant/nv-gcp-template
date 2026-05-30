@@ -68,7 +68,7 @@ setup() {
 }
 
 @test "cleanup: extract_issue_id parses branch name for workspace" {
-    source .mise-tasks/utils.sh
+    source mise-tasks/utils.sh
     run extract_issue_id "feature/PROJ-123-some-feature"
     [ "$status" -eq 0 ]
     [ "$output" = "proj-123" ]

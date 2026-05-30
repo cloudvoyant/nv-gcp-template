@@ -58,7 +58,7 @@ Workflows call `mise run` tasks rather than inlining logic. This keeps CI as a t
 
 ### Task Runner (mise)
 
-`.mise-tasks/` is the single interface for all project operations. Key tasks:
+`mise-tasks/` is the single interface for all project operations. Key tasks:
 
 - `mise run test` / `mise run build` — Quality gates; `publish` depends on both
 - `mise run tf-init/tf-plan/tf-apply/tf-destroy [WORKSPACE]` — Terraform operations with confirmation guards
@@ -151,7 +151,7 @@ Playwright tests live in `apps/web/e2e/`. The global setup and teardown hooks ha
 
 ### Terraform Workspace Strategy
 
-`infer_terraform_workspace()` in `.mise-tasks/utils.sh` extracts the issue ID from a branch name and normalizes it to lowercase for GCP resource naming compliance:
+`infer_terraform_workspace()` in `mise-tasks/utils.sh` extracts the issue ID from a branch name and normalizes it to lowercase for GCP resource naming compliance:
 
 - `feature/PROJ-12345-my-feature` → `proj-12345`
 - `bugfix/BUG-1-fix` → `bug-1`
@@ -170,13 +170,13 @@ The resulting workspace name is used as both the Terraform workspace and the `en
 
 CI workspaces (`ci-*`) skip Firestore entirely to avoid HTTP/2 connection timeouts that occur during the multi-minute GCP Firestore create/delete operations. Real preview workspaces get a dedicated Firestore database with `deletion_policy = "DELETE"` so no orphaned databases are left in GCP after `tf-destroy`.
 
-### Component: .mise-tasks/
+### Component: mise-tasks/
 
-- `.mise-tasks/utils.sh` — Shared logging (`log_info`, `log_success`, `log_error`, `log_warn`), `confirm` for destructive operations, `infer_terraform_workspace`, and cross-platform `sed_inplace`. Sourced by all other tasks (`#MISE hide=true`).
-- `.mise-tasks/scaffold` — Initializes a new project from the template. Handles PascalCase/camelCase/kebab-case replacements, removes template-only files, and restores from backup on failure.
-- `.mise-tasks/upversion` — Wraps semantic-release. Dry-run mode locally, CI mode in GitHub Actions.
+- `mise-tasks/utils.sh` — Shared logging (`log_info`, `log_success`, `log_error`, `log_warn`), `confirm` for destructive operations, `infer_terraform_workspace`, and cross-platform `sed_inplace`. Sourced by all other tasks (`#MISE hide=true`).
+- `mise-tasks/scaffold` — Initializes a new project from the template. Handles PascalCase/camelCase/kebab-case replacements, removes template-only files, and restores from backup on failure.
+- `mise-tasks/upversion` — Wraps semantic-release. Dry-run mode locally, CI mode in GitHub Actions.
 
-All tasks use `set -euo pipefail`. Source `.mise-tasks/utils.sh` at the top of any new task.
+All tasks use `set -euo pipefail`. Source `mise-tasks/utils.sh` at the top of any new task.
 
 ### Component: Dockerfile (Multi-Stage)
 
@@ -190,7 +190,7 @@ Docker layer caching is maximized by separating `mise install` (tool install) fr
 The template targets macOS, Linux, and Windows (via WSL or Docker Desktop):
 
 - `.editorconfig` enforces LF line endings to prevent git diff noise on Windows.
-- `sed_inplace` in `.mise-tasks/utils.sh` abstracts the BSD/GNU `sed -i` difference.
+- `sed_inplace` in `mise-tasks/utils.sh` abstracts the BSD/GNU `sed -i` difference.
 - Bash 3.2+ is required — macOS ships with Bash 3.2, so Bash 4+ features are avoided.
 - mise handles tool installation across platforms via its own plugin system.
 
@@ -198,7 +198,7 @@ The template targets macOS, Linux, and Windows (via WSL or Docker Desktop):
 
 - Secrets belong in GitHub Secrets and GCP Secret Manager — never in `mise.toml` or committed files.
 - `.gitignore` includes patterns for keys, certificates, credentials, and `.env` files.
-- `confirm` utility in `.mise-tasks/utils.sh` gates all destructive operations (destroy, publish, scaffold).
+- `confirm` utility in `mise-tasks/utils.sh` gates all destructive operations (destroy, publish, scaffold).
 - `set -euo pipefail` in all task scripts ensures errors fail fast rather than propagating silently.
 
 ---

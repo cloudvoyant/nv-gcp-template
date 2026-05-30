@@ -2,7 +2,7 @@
 # Tests for scripts/utils.sh utility functions
 
 setup() {
-    source .mise-tasks/utils.sh
+    source mise-tasks/utils.sh
 }
 
 @test "extract_issue_id: extracts various formats" {
