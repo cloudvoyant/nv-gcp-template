@@ -1,3 +1,14 @@
+## [1.4.8](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.7...v1.4.8) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** move workspace libs to devDependencies, simplify runtime image
+
+Workspace libs (@mise-app-template/auth, storage, ui) are TypeScript-only and
+bundled by adapter-node/Rollup at build time. Moving them to devDependencies
+means Rollup includes them in the server bundle and the runtime image only
+needs real npm deps — no pnpm deploy, no Python scripting.
+
 ## [1.4.7](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.6...v1.4.7) (2026-05-30)
 
 ### Bug Fixes
