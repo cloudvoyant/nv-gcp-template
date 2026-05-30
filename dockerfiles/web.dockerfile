@@ -17,14 +17,7 @@ RUN pnpm --filter "@${PROJECT}/web" build
 
 # Generate a runtime package.json — strip workspace:* entries since those libs
 # are TypeScript-only and already bundled by Vite into the server output.
-RUN python3 -c "
-import json
-with open('apps/web/package.json') as f:
-    pkg = json.load(f)
-deps = {k: v for k, v in (pkg.get('dependencies') or {}).items() if not v.startswith('workspace:')}
-with open('runtime-package.json', 'w') as f:
-    json.dump({'type': 'module', 'dependencies': deps}, f)
-"
+RUN python3 -c "import json; pkg=json.load(open('apps/web/package.json')); deps={k:v for k,v in (pkg.get('dependencies') or {}).items() if not v.startswith('workspace:')}; json.dump({'type':'module','dependencies':deps},open('runtime-package.json','w'))"
 
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
