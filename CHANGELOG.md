@@ -1,3 +1,13 @@
+## [1.4.10](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.9...v1.4.10) (2026-05-30)
+
+### Code Refactoring
+
+* rename .mise-tasks to mise-tasks
+
+Removes the leading dot so the directory is visible by default without
+needing mise run show/hide toggles. Added [task_config] includes to
+mise.toml so mise discovers tasks from the new location.
+
 ## [1.4.9](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.8...v1.4.9) (2026-05-30)
 
 ### Bug Fixes
