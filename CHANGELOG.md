@@ -1,3 +1,13 @@
+## [1.4.9](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.8...v1.4.9) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** use node one-liner to strip workspace refs for runtime package.json
+
+adapter-node does not generate a build/package.json. npm cannot resolve
+workspace:* protocol, so we use node (available in builder via mise) to
+generate a runtime.json with only real npm deps before the runtime stage.
+
 ## [1.4.8](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.7...v1.4.8) (2026-05-30)
 
 ### Bug Fixes
