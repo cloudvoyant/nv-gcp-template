@@ -31,10 +31,12 @@ setup() {
     export DEST_DIR="$PROJECT_DIR"
     export SRC_DIR="$TEMPLATE_CLONE"
 
+    MISE="${MISE:-$(command -v mise 2>/dev/null || echo ~/.local/bin/mise)}"
+
     # Read VERSION and PROJECT from mise env (while still in trusted ORIGINAL_DIR)
     export PROJECT VERSION
-    PROJECT=$(~/.local/bin/mise env 2>/dev/null | grep '^export PROJECT=' | sed 's/export PROJECT=//' | tr -d '"' || echo "mise-app-template")
-    VERSION=$(~/.local/bin/mise env 2>/dev/null | grep '^export VERSION=' | sed 's/export VERSION=//' | tr -d '"' || cat "$ORIGINAL_DIR/version.txt")
+    PROJECT=$("${MISE}" env 2>/dev/null | grep '^export PROJECT=' | sed 's/export PROJECT=//' | tr -d '"' || echo "mise-app-template")
+    VERSION=$("${MISE}" env 2>/dev/null | grep '^export VERSION=' | sed 's/export VERSION=//' | tr -d '"' || cat "$ORIGINAL_DIR/version.txt")
 
     # Change to the template clone directory (where scaffold will be called from)
     cd "$TEMPLATE_CLONE"
@@ -279,7 +281,8 @@ teardown() {
     cd "$ORIGINAL_DIR"
 
     # User-facing tasks (mise tasks)
-    run ~/.local/bin/mise tasks
+    MISE="${MISE:-$(command -v mise 2>/dev/null || echo ~/.local/bin/mise)}"
+    run "${MISE}" tasks
     [ "$status" -eq 0 ]
 
     # Upgrade task should exist
