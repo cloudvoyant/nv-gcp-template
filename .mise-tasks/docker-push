@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Build and push Docker image to GCP Artifact Registry"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+SERVICE="${1:-web}"
+TAG="${2:-}"
+ACTUAL_TAG="${TAG:-${VERSION}}"
+IMAGE_NAME="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-${SERVICE}:${ACTUAL_TAG}"
+
+log_info "Building and pushing ${SERVICE} (tag: ${ACTUAL_TAG})..."
+docker compose build base
+VERSION="${ACTUAL_TAG}" docker compose build "${SERVICE}"
+VERSION="${ACTUAL_TAG}" docker compose push "${SERVICE}"
+
+mkdir -p .nv
+echo "${IMAGE_NAME}" > .nv/docker-image.txt
+log_success "Docker image pushed: ${IMAGE_NAME}"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Destroy Terraform-managed infrastructure"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+AUTO_APPROVE="${2:-}"
+
+# Run tf-init first
+mise run tf-init "${WORKSPACE_NAME}"
+
+APP_IMAGE="${TF_VAR_app_image:-}"
+
+log_warn "WARNING: This will destroy all infrastructure in workspace: ${WORKSPACE_NAME}"
+
+if [ "${AUTO_APPROVE}" != "--auto-approve" ]; then
+    if ! confirm "Are you sure you want to destroy this infrastructure?"; then
+        log_info "Destroy cancelled"
+        exit 0
+    fi
+fi
+
+cd infra/environments
+# shellcheck disable=SC2046
+terraform destroy \
+    -var="project=${PROJECT}" \
+    -var="gcp_project_id=${GCP_PROJECT_ID}" \
+    -var="gcp_region=${GCP_REGION}" \
+    -var="environment_name=${WORKSPACE_NAME}" \
+    -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+    -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+    -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+    -var="app_image=${APP_IMAGE}" \
+    $([ "${AUTO_APPROVE}" = "--auto-approve" ] && echo "-auto-approve" || true)

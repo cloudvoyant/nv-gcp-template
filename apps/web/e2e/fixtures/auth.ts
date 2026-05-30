@@ -13,7 +13,9 @@ export function loadPasswords(): {
   const p2Password = process.env.E2E_P2_PASSWORD;
 
   if (!p1Password) {
-    throw new Error("Missing E2E_P1_PASSWORD.\nRun: just fetch-e2e-secrets");
+    throw new Error(
+      "Missing E2E_P1_PASSWORD.\nRun: mise run fetch-e2e-secrets",
+    );
   }
 
   return { p1Password, p2Password };

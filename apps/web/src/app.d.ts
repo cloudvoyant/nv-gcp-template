@@ -1,4 +1,4 @@
-import type { Session } from "@nv-gcp-template/auth";
+import type { Session } from "@mise-app-template/auth";
 
 declare global {
   namespace App {

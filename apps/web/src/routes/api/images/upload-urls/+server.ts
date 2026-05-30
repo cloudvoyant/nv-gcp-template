@@ -4,7 +4,7 @@ import {
   generateSignedUploadUrl,
   getPublicUrl,
   getImageSrcset,
-} from "@nv-gcp-template/storage";
+} from "@mise-app-template/storage";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   // Auth check

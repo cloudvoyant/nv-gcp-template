@@ -1,31 +1,27 @@
 # syntax=docker/dockerfile:1
-# Base image: full build environment with source and dependencies
+# Base image: mise installs all tools, then installs project dependencies
 
 FROM ubuntu:22.04
 
-WORKDIR /app
+# Install mise prerequisites
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      ca-certificates curl git sudo && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy everything (respecting .dockerignore)
+# Install mise into a stable location
+ENV MISE_DATA_DIR=/usr/local/mise
+ENV MISE_CONFIG_DIR=/usr/local/mise-config
+ENV PATH="/usr/local/mise/shims:/usr/local/mise/bin:${PATH}"
+RUN curl -fsSL https://mise.run | sh && mise --version
+
+WORKDIR /app
 COPY . .
 
-# Force HTTPS for apt to work around ISP-level HTTP blocking (discovered in production).
-# Installs ca-certificates first so subsequent apt calls can verify TLS.
-RUN sed -i 's|http://|https://|g' /etc/apt/sources.list && \
-  echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99verify-peer.conf && \
-  apt-get update && \
-  apt-get install -y ca-certificates && \
-  rm /etc/apt/apt.conf.d/99verify-peer.conf && \
-  apt-get update && \
-  apt-get install -y sudo curl gnupg && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* && \
-  bash scripts/setup.sh --docker-optimize --ci
+# Install all tools declared in mise.toml [tools] (node, pnpm, terraform, etc.)
+RUN mise trust --yes && mise install
 
-# Ensure pnpm is available globally
-ENV PNPM_HOME="/root/.local/share/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-# Verify Node.js is available, then install project dependencies
-RUN node --version && npm --version && just install
+# Install project dependencies
+RUN mise run install
 
 LABEL org.opencontainers.image.title="${PROJECT} Base Image"

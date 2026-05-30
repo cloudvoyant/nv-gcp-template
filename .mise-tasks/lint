@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Lint code (type check)"
+set -euo pipefail
+pnpm --filter "@${PROJECT}/web" check

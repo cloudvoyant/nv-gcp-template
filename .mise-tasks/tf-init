@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#MISE description="Initialize Terraform backend and select workspace"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
+PREFIX="${GCP_PROJECT_ID}/${PROJECT}"
+
+# Check if backend bucket exists
+if ! gsutil ls -b "gs://${BUCKET_NAME}" > /dev/null 2>&1; then
+    log_error "Backend bucket does not exist: ${BUCKET_NAME}"
+    log_error "Run 'mise run tf-create-backend' to create the necessary GCS backend bucket"
+    exit 1
+fi
+
+log_info "Initializing Terraform backend..."
+log_info "Bucket: ${BUCKET_NAME}"
+log_info "Prefix: ${PREFIX}"
+log_info "Workspace: ${WORKSPACE_NAME}"
+
+cd infra/environments
+terraform init \
+    -backend-config="bucket=${BUCKET_NAME}" \
+    -backend-config="prefix=${PREFIX}" \
+    -reconfigure
+
+# Select or create workspace
+select_terraform_workspace "${WORKSPACE_NAME}" "."
+
+log_success "Terraform initialized for workspace: ${WORKSPACE_NAME}"
+log_success "State: gs://${BUCKET_NAME}/${PREFIX}/env:/${WORKSPACE_NAME}/default.tfstate"

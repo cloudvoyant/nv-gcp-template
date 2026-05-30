@@ -12,10 +12,8 @@
     ".nv": false,
     "Dockerfile": false,
     "docker-compose.yml": false,
-    "justfile": false,
     "version.txt": false,
     ".dockerignore": false,
-    "scripts": false,
     "CONTRIBUTING.md": false,
     "CHANGELOG.md": false
   },
@@ -30,7 +28,6 @@
   // File associations
   "files.associations": {
     "*.bats": "shellscript",
-    ".envrc": "shellscript",
     "*.md": "markdown"
   },
 

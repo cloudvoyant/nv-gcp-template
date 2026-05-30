@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Run project locally (production server using built output)"
+set -euo pipefail
+node apps/web/build/index.js

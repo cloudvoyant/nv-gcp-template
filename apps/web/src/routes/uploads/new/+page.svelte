@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { resizeImageToVariants } from "@nv-gcp-template/storage/resize";
-  import { Button } from "@nv-gcp-template/ui/components/button";
+  import { resizeImageToVariants } from "@mise-app-template/storage/resize";
+  import { Button } from "@mise-app-template/ui/components/button";
   import {
     Root as FileDropZone,
     Trigger as FileDropZoneTrigger,
-  } from "@nv-gcp-template/ui/components/file-drop-zone";
+  } from "@mise-app-template/ui/components/file-drop-zone";
 
   let { data }: { data: PageData } = $props();
   let files = $state<File[]>([]);

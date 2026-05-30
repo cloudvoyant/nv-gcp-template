@@ -2,100 +2,98 @@
 
 ### Bug Fixes
 
-* align extract_issue_id and infer_terraform_workspace with readership
+- align extract_issue_id and infer_terraform_workspace with readership
 
-* update extract_issue_id test to expect error on non-feature branches
+- update extract_issue_id test to expect error on non-feature branches
 
 ## [1.3.1](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.3.0...v1.3.1) (2026-04-12)
 
 ### Bug Fixes
 
-* skip preview cleanup for non-feature branch PRs
+- skip preview cleanup for non-feature branch PRs
 
 ## [1.3.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.7...v1.3.0) (2026-04-12)
 
 ### Features
 
-* add full-stack SvelteKit app with auth, uploads, UI, and E2E
+- add full-stack SvelteKit app with auth, uploads, UI, and E2E
 
-- SvelteKit app (apps/web) with Kinde OAuth 2.0 authentication, image
+* SvelteKit app (apps/web) with Kinde OAuth 2.0 authentication, image
   upload pipeline (browser resize → signed GCS PUT → Firestore metadata),
   and CDN delivery via Cloud CDN
-- libs/auth: Kinde client, JWT verification, session cookie management
-- libs/storage: GCS client, signed URL generation, WebP image resizing
-- libs/ui: shadcn-svelte component library (Button, Input, FileDropZone)
+* libs/auth: Kinde client, JWT verification, session cookie management
+* libs/storage: GCS client, signed URL generation, WebP image resizing
+* libs/ui: shadcn-svelte component library (Button, Input, FileDropZone)
   with OKLCH theming; Tailwind content scan extended to libs/ui/src
-- E2E test suite (Playwright) with global setup/teardown, auth state
+* E2E test suite (Playwright) with global setup/teardown, auth state
   reuse, Firestore cleanup of [E2E]-prefixed records
-
 
 ### Bug Fixes
 
-* add root .prettierignore to exclude generated and credential files
+- add root .prettierignore to exclude generated and credential files
 
-* align with readership structural patterns
+- align with readership structural patterns
 
-- hooks.server.ts: add existsSync check on GOOGLE_APPLICATION_CREDENTIALS,
+* hooks.server.ts: add existsSync check on GOOGLE_APPLICATION_CREDENTIALS,
   add handleError export with errorId
-- e2e: extract personas.ts, add P2 persona (unused), update auth fixtures
+* e2e: extract personas.ts, add P2 persona (unused), update auth fixtures
   to return p2Password (optional until secret is provisioned)
-- ci.yml: add 'just publish' pre-release step in preview job
-- .prettierignore: add *.tfvars, .nv/, service-account*.json, credentials.json
+* ci.yml: add 'just publish' pre-release step in preview job
+* .prettierignore: add _.tfvars, .nv/, service-account_.json, credentials.json
 
-* apply prettier formatting
+- apply prettier formatting
 
-* **e2e:** broaden email selector and add debug screenshot on Kinde page
+- **e2e:** broaden email selector and add debug screenshot on Kinde page
 
 Add autocomplete/id/name fallback selectors to handle Kinde apps that
 render email as type=text. Add screenshot after waitForURL to diagnose
 selector mismatches in CI.
 
-* export .env.e2e.local vars into environment before running playwright
+- export .env.e2e.local vars into environment before running playwright
 
-* fail loudly in fetch-e2e-secrets if E2E_P1_PASSWORD not found
+- fail loudly in fetch-e2e-secrets if E2E_P1_PASSWORD not found
 
-* **infra:** grant Cloud Run SA token creator to enable GCS signed URLs
+- **infra:** grant Cloud Run SA token creator to enable GCS signed URLs
 
 Without iam.serviceAccountTokenCreator on itself, the Cloud Run SA cannot
 sign blobs, so generateSignedUploadUrl() fails with ADC on Cloud Run.
 
-* ignore .svelte-kit and gha-creds files in prettier
+- ignore .svelte-kit and gha-creds files in prettier
 
-* **infra:** inject FIRESTORE_DATABASE_ID into Cloud Run env
+- **infra:** inject FIRESTORE_DATABASE_ID into Cloud Run env
 
 The app defaults to (default) Firestore database when FIRESTORE_DATABASE_ID
 is not set. Non-prod environments use a named database (project-env)
 so this env var must be explicitly passed to the Cloud Run service.
 
-* normalize e2e secret format and safe-load env vars without glob expansion
+- normalize e2e secret format and safe-load env vars without glob expansion
 
-* remap legacy e2e secret key names to E2E_ prefix on fetch
+- remap legacy e2e secret key names to E2E\_ prefix on fetch
 
-* restore .claude/style.md and workflows.md deleted by prettier
+- restore .claude/style.md and workflows.md deleted by prettier
 
-* revert fetch-e2e-secrets to simple form matching readership
+- revert fetch-e2e-secrets to simple form matching readership
 
-* skip Terraform integration tests in build-and-test CI job
+- skip Terraform integration tests in build-and-test CI job
 
 Terraform apply requires a built Docker image which is only available
 in the preview job. Terraform deployment is covered there instead.
 
-* skip Terraform integration tests in release pipeline ([#4](https://github.com/cloudvoyant/nv-gcp-template/issues/4))
+- skip Terraform integration tests in release pipeline ([#4](https://github.com/cloudvoyant/nv-gcp-template/issues/4))
 
-* strip quotes from JSON-formatted secret keys and values
+- strip quotes from JSON-formatted secret keys and values
 
-* **e2e:** use baseURL in logout test instead of hardcoded localhost
+- **e2e:** use baseURL in logout test instead of hardcoded localhost
 
-* **e2e:** use robust Kinde form selectors in global-setup
+- **e2e:** use robust Kinde form selectors in global-setup
 
 Replace getByLabel(/email/i) with input[name=p_email]/input[type=email]
 and add waitForURL(/kinde.com/) to confirm redirect before filling form.
 Also handle both single-step and two-step Kinde login flows.
 
-
 ### Tests
 
-* **e2e:** improve upload test to capture error text on failure
+- **e2e:** improve upload test to capture error text on failure
 
 ## [1.2.7](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.2.6...v1.2.7) (2026-02-21)
 

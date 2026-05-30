@@ -1,6 +1,6 @@
-# @nv-gcp-template/storage
+# @mise-app-template/storage
 
-GCS storage client for the nv-gcp-template monorepo.
+GCS storage client for the mise-app-template monorepo.
 
 ## Features
 
@@ -16,7 +16,7 @@ GCS storage client for the nv-gcp-template monorepo.
 ### Server initialization (hooks.server.ts)
 
 ```typescript
-import { initStorageConfig } from "@nv-gcp-template/storage";
+import { initStorageConfig } from "@mise-app-template/storage";
 
 initStorageConfig({
   projectId: env.GCP_PROJECT_ID,
@@ -37,7 +37,7 @@ import {
   generateSignedUploadUrl,
   getPublicUrl,
   getImageSrcset,
-} from "@nv-gcp-template/storage";
+} from "@mise-app-template/storage";
 
 const signedUrl = await generateSignedUploadUrl(
   "alice/avatar-123-medium.webp",
@@ -51,7 +51,7 @@ const cdnUrl = getPublicUrl("alice/avatar-123"); // → https://cdn.example.com/
 ### Resize image in the browser
 
 ```typescript
-import { resizeImageToVariants } from "@nv-gcp-template/storage/resize";
+import { resizeImageToVariants } from "@mise-app-template/storage/resize";
 
 const variants = await resizeImageToVariants(file);
 // variants.thumbnail, .small, .medium, .large, .xlarge → WebP Blobs
@@ -61,7 +61,7 @@ const variants = await resizeImageToVariants(file);
 
 ```svelte
 <script>
-  import { Image } from "@nv-gcp-template/storage";
+  import { Image } from "@mise-app-template/storage";
 </script>
 
 <Image image={upload} alt="Profile photo" />

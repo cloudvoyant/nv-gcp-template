@@ -1,4 +1,4 @@
-# nv-gcp-template Style Guide
+# mise-app-template Style Guide
 
 <!-- This file is automatically loaded by Claude Code -->
 <!-- Context tags enable smart, contextual rule loading -->
@@ -18,27 +18,27 @@ This style guide uses context tags for efficient loading. Rules are only loaded 
 
 ## Build System
 
-**CRITICAL:** This project uses justfile for all build and operational commands.
+**CRITICAL:** This project uses mise for all build and operational commands.
 
 **Before running any bash/make/gcloud/docker command directly:**
 
-1. Check available recipes: `just --list`
-2. Use the justfile recipe if one exists
-3. Only run commands directly if no recipe exists
+1. Check available tasks: `mise tasks`
+2. Use the mise task if one exists
+3. Only run commands directly if no task exists
 
-**Key recipes:**
+**Key tasks:**
 
-- `just test` - Run bats test suite
-- `just build` - Build project
-- `just docker-build` - Build Docker image
-- `just docker-push` - Push to GCP Container Registry
-- `just setup` - Setup development environment
-- `just gcp-login` - Authenticate with GCP
-- `just tf-init/plan/apply/destroy` - Terraform operations
-- `just publish` - Publish artifact to GCP Artifact Registry
-- `just upgrade` - Upgrade to latest template version
+- `mise run test` - Run bats test suite
+- `mise run build` - Build project
+- `mise run docker-build` - Build Docker image
+- `mise run docker-push` - Push to GCP Container Registry
+- `mise install` - Install all dev tools and dependencies
+- `mise run gcp-login` - Authenticate with GCP
+- `mise run tf-init/tf-plan/tf-apply/tf-destroy` - Terraform operations
+- `mise run publish` - Publish artifact to GCP Artifact Registry
+- `mise run upgrade` - Upgrade to latest template version
 
-**Why:** Justfile ensures consistent, environment-aware commands across team and CI/CD.
+**Why:** mise ensures consistent, environment-aware commands across team and CI/CD.
 
 ---
 
@@ -60,8 +60,8 @@ This style guide uses context tags for efficient loading. Rules are only loaded 
 
 **Environment:**
 
-- Read environment from `.envrc` via direnv — never hardcode project IDs or regions
-- Use `source .envrc` when accessing env vars in scripts outside of direnv context
+- Read environment from `mise.toml [env]` — never hardcode project IDs or regions
+- Use `eval "$(mise env --shell bash)"` when accessing env vars in scripts outside of mise context
 
 ---
 
@@ -109,9 +109,9 @@ body (optional)
 
 **Workflow:**
 
-- Always use `just docker-build` and `just docker-push` (not direct docker commands)
-- Tags: use VERSION from `.envrc` for releases, branch-name + commit hash for previews
-- GCP auth for registry: `just gcp-login` before pushing
+- Always use `mise run docker-build` and `mise run docker-push` (not direct docker commands)
+- Tags: use VERSION from `mise.toml [env]` for releases, branch-name + commit hash for previews
+- GCP auth for registry: `mise run gcp-login` before pushing
 
 ---
 
@@ -121,19 +121,19 @@ body (optional)
 
 **State backend:** GCS bucket `{GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage`
 
-**Workflow (always via justfile):**
+**Workflow (always via mise):**
 
-1. `just tf-init [WORKSPACE]` - Init backend, auto-selects workspace from branch name
-2. `just tf-plan [WORKSPACE]` - Plan changes
-3. `just tf-apply [WORKSPACE]` - Apply (prompts for confirmation unless `--auto-approve`)
-4. `just tf-destroy [WORKSPACE]` - Destroy (always confirms unless `--auto-approve`)
+1. `mise run tf-init [WORKSPACE]` - Init backend, auto-selects workspace from branch name
+2. `mise run tf-plan [WORKSPACE]` - Plan changes
+3. `mise run tf-apply [WORKSPACE]` - Apply (prompts for confirmation unless `--auto-approve`)
+4. `mise run tf-destroy [WORKSPACE]` - Destroy (always confirms unless `--auto-approve`)
 
-**Workspace naming:** Auto-inferred from branch name via `infer_terraform_workspace()` in utils.sh
+**Workspace naming:** Auto-inferred from branch name via `infer_terraform_workspace()` in `.mise-tasks/utils.sh`
 
 **Module location:** `infra/modules/` — add reusable modules here
 **Environment config:** `infra/environments/` — workspace-specific configuration
 
-**Safety:** Never run `terraform destroy` or `terraform apply` directly; always use justfile recipes which include confirmation guards.
+**Safety:** Never run `terraform destroy` or `terraform apply` directly; always use mise tasks which include confirmation guards.
 
 ---
 
@@ -145,14 +145,14 @@ body (optional)
 
 **Running tests:**
 
-- `just test` - Run full suite
-- `bats test/` - Run directly (if bats installed)
+- `mise run test` - Run full suite
+- `bats template-tests/` - Run directly (if bats installed)
 - Parallel execution used automatically if GNU parallel is available
 
 **Test organization:**
 
-- Test files in `test/` directory with `.bats` extension
-- Source `scripts/utils.sh` in `setup()` for utility access
+- Test files in `template-tests/` directory with `.bats` extension
+- Source `.mise-tasks/utils.sh` in `setup()` for utility access
 - Use descriptive test names: `@test "function: describes expected behavior"`
 - Test both happy path and edge cases (empty input, invalid format, etc.)
 
@@ -169,11 +169,11 @@ body (optional)
 
 **Authentication:**
 
-- Local: `just gcp-login` (interactive browser auth)
-- CI: `just gcp-login --ci` (service account via `$GCP_SA_KEY` env var)
+- Local: `mise run gcp-login` (interactive browser auth)
+- CI: `mise run gcp-login --ci` (service account via `$GCP_SA_KEY` env var)
 
-**Artifact Registry:** Generic packages published via `just publish`
-**Container Registry:** Docker images pushed via `just docker-push`
+**Artifact Registry:** Generic packages published via `mise run publish`
+**Container Registry:** Docker images pushed via `mise run docker-push`
 
 ---
 

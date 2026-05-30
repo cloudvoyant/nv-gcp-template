@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Clean build artifacts"
+set -euo pipefail
+rm -rf .nv
+rm -rf apps/web/build
+rm -rf apps/web/.svelte-kit
+printf '\033[1;33mCleaned build artifacts\033[0m\n'

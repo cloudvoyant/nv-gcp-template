@@ -4,8 +4,8 @@ import {
   SESSION_COOKIE_NAME,
   serializeSession,
   getSessionCookieOptions,
-} from "@nv-gcp-template/auth";
-import { createSessionFromCode } from "@nv-gcp-template/auth/server";
+} from "@mise-app-template/auth";
+import { createSessionFromCode } from "@mise-app-template/auth/server";
 
 export const prerender = false;
 

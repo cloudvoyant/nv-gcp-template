@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#MISE description="Show all files in VS Code / Zed"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+SETTINGS_FILE="$(cd "$(dirname "$0")/.." && pwd)/.vscode/settings.json"
+
+update_file_exclusions_show() {
+    if [ ! -f "${SETTINGS_FILE}" ]; then
+        log_error "Settings file not found: ${SETTINGS_FILE}"
+        return 1
+    fi
+
+    # Create backup
+    cp "${SETTINGS_FILE}" "${SETTINGS_FILE}.bak"
+
+    sed -i.tmp '
+        /"files.exclude": {/,/}/ {
+            s/"\.devcontainer": true/"\.devcontainer": false/
+            s/"\.vscode": [^,]*/"\.vscode": false/
+            s/"\.github": [^,]*/"\.github": false/
+            s/"\.editorconfig": [^,]*/"\.editorconfig": false/
+            s/"\.gitignore": [^,]*/"\.gitignore": false/
+            s/"\.gitattributes": [^,]*/"\.gitattributes": false/
+            s/"\.releaserc\.json": [^,]*/"\.releaserc.json": false/
+            s/"\.nv": [^,]*/"\.nv": false/
+            s/"\.dockerignore": [^,]*/"\.dockerignore": false/
+            s/"Dockerfile": [^,]*/"Dockerfile": false/
+            s/"docker-compose\.yml": [^,]*/"docker-compose.yml": false/
+            s/"justfile": [^,]*/"justfile": false/
+            s/"version\.txt": [^,]*/"version.txt": false/
+            s/"\.claude": [^,]*/"\.claude": false/
+            s/"scripts": [^,]*/"scripts": false/
+            s/"CONTRIBUTING\.md": [^,]*/"CONTRIBUTING.md": false/
+            s/"CHANGELOG\.md": [^,]*/"CHANGELOG.md": false/
+        }
+    ' "${SETTINGS_FILE}"
+
+    # Remove temp file
+    rm -f "${SETTINGS_FILE}.tmp"
+
+    # Verify the file is still valid (basic check)
+    if [ -f "${SETTINGS_FILE}" ]; then
+        rm -f "${SETTINGS_FILE}.bak"
+        return 0
+    else
+        # Restore backup on failure
+        mv "${SETTINGS_FILE}.bak" "${SETTINGS_FILE}"
+        return 1
+    fi
+}
+
+log_info "Showing all files in VS Code"
+if update_file_exclusions_show; then
+    log_success "VS Code: All files are now visible"
+else
+    log_error "Failed to update VS Code settings"
+    exit 1
+fi

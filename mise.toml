@@ -1,0 +1,24 @@
+[env]
+PROJECT = "mise-app-template"
+VERSION = "{{ exec(command='cat version.txt') }}"
+
+# DevOps Project (tfstate, artifact registry, container registry)
+GCP_DEVOPS_PROJECT_ID = "devops-466002"
+GCP_DEVOPS_PROJECT_REGION = "us-east1"
+GCP_DEVOPS_REGISTRY_NAME = "cloudvoyant-generic-registry"
+GCP_DEVOPS_DOCKER_REGISTRY_NAME = "cloudvoyant-docker-registry"
+
+# Infrastructure Project (where resources are provisioned)
+GCP_PROJECT_ID = "nv-templates-483304"
+GCP_REGION = "us-east1"
+
+[tools]
+node = "20"
+pnpm = "latest"
+terraform = "1"
+bats = "latest"
+shellcheck = "latest"
+shfmt = "latest"
+
+[settings]
+experimental = true

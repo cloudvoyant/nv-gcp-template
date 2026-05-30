@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#MISE description="Upgrade to newer template version (requires Claude Code)"
+set -euo pipefail
+
+if command -v claude >/dev/null 2>&1; then
+    if grep -q "NV_TEMPLATE=" mise.toml 2>/dev/null; then
+        claude /upgrade
+    else
+        printf '\033[0;31mThis project is not based on a template\033[0m\n'
+        echo ""
+        echo "To adopt a template, use the nv CLI:"
+        echo "  nv scaffold <template>"
+        exit 1
+    fi
+else
+    printf '\033[0;31mClaude Code CLI not found\033[0m\n'
+    echo "Install Claude Code or run: /upgrade"
+    exit 1
+fi

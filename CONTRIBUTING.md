@@ -7,12 +7,12 @@ Fork and clone the repository:
 ```bash
 git clone https://github.com/your-username/lib.git
 cd lib
-just setup --dev        # Installs Claude CLI and Claudevoyant plugin
+mise install            # Installs all dev tools
 ```
 
 ### Claudevoyant Plugin
 
-This template uses the **Claudevoyant plugin** for slash commands like `/plan`, `/commit`, `/upgrade`, etc. The plugin is automatically installed when you run `just setup --dev`.
+This template uses the **Claudevoyant plugin** for slash commands like `/plan`, `/commit`, `/upgrade`, etc.
 
 If you need to reinstall the plugin manually, first add the marketplace:
 
@@ -40,8 +40,8 @@ Make your changes:
 ```bash
 git checkout -b feature/my-feature
 # Make changes
-just build
-just test
+mise run build
+mise run test
 ```
 
 Commit using conventional commit format:
@@ -96,7 +96,7 @@ BREAKING CHANGE: explanation of breaking change"
 Run tests before submitting:
 
 ```bash
-just test
+mise run test
 ```
 
 Ensure CI passes on your pull request.
@@ -124,7 +124,7 @@ Follow the documentation style guide:
 
 1. Create a feature branch
 2. Make your changes
-3. Run `just build && just test`
+3. Run `mise run build && mise run test`
 4. Commit with conventional commit messages
 5. Push and create PR
 6. Wait for CI to pass

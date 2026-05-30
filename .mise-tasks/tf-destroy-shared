@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Destroy shared Terraform infrastructure"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+mise run tf-init-shared
+confirm "Destroy shared CDN infrastructure for ${PROJECT}?"
+terraform -chdir=infra/shared destroy \
+  -var="project=${PROJECT}" \
+  -var="gcp_project_id=${GCP_PROJECT_ID}" \
+  -var="gcp_region=${GCP_REGION}" \
+  -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+  "$@"

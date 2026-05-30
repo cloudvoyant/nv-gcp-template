@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Docker passthrough — allows mise run docker -- <cmd>"
+set -euo pipefail
+docker "$@"

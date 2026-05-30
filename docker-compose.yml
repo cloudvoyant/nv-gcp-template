@@ -24,4 +24,4 @@ services:
     image: ${PROJECT}-base:local
     depends_on:
       - base
-    command: ["just", "test"]
+    command: ["mise", "run", "test"]

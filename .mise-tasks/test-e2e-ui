@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Open Playwright interactive UI (local only)"
+set -euo pipefail
+pnpm --filter "@nv-gcp-template/web" exec playwright test --ui

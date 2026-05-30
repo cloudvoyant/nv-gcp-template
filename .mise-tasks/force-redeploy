@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#MISE description="Force Cloud Run to redeploy current image"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+
+if [ "${WORKSPACE_NAME}" = "prod" ]; then
+    SERVICE_NAME="${PROJECT}-prod"
+else
+    SERVICE_NAME="${PROJECT}-${WORKSPACE_NAME}"
+fi
+
+CURRENT_IMAGE=$(gcloud run services describe "${SERVICE_NAME}" \
+    --project="${GCP_PROJECT_ID}" \
+    --region="${GCP_REGION}" \
+    --format="value(spec.template.spec.containers[0].image)")
+
+gcloud run services update "${SERVICE_NAME}" \
+    --image="${CURRENT_IMAGE}" \
+    --region="${GCP_REGION}" \
+    --project="${GCP_PROJECT_ID}"
+log_success "Service redeployed successfully"

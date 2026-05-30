@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Deploy application after infrastructure is provisioned"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+
+log_info "Running post-infrastructure deployment for workspace: ${WORKSPACE_NAME}"
+log_info "Add application deployment steps here (kubectl apply, gcloud run deploy, etc.)"
+# Example: kubectl apply -f k8s/ --context=${WORKSPACE_NAME}

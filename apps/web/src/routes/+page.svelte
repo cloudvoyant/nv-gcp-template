@@ -1,5 +1,5 @@
 <script lang="ts">
-  const projectName = "nv-gcp-template";
+  const projectName = "mise-app-template";
 </script>
 
 <svelte:head>

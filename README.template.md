@@ -16,8 +16,8 @@
 ## Requirements
 
 - bash 3.2+
-- just - Command runner
-- Terraform 1.5+
+- mise - Dev tool and task runner
+- Terraform 1.5+ (managed by mise)
 - gcloud CLI
 - GCP project with billing enabled
 
@@ -26,52 +26,35 @@
 ### Setup
 
 ```bash
-# Install dependencies
-just setup --dev
+# Install all dev tools and dependencies
+mise install
 
-# Configure .envrc with your GCP project details
-vim .envrc
-
-# Allow direnv
-direnv allow
+# Configure GCP project details in mise.local.toml (optional local overrides)
+cp mise.local.toml.example mise.local.toml
+vim mise.local.toml
 
 # Authenticate with GCP
 gcloud auth login
 gcloud auth application-default login
 
 # Create Terraform backend (one-time)
-just tf-create-backend
+mise run tf-create-backend
 ```
 
 ### Deploy Infrastructure
 
 ```bash
-just tf-init          # Initialize Terraform
-just tf-plan          # Preview changes
-just tf-apply         # Apply changes
+mise run tf-init          # Initialize Terraform
+mise run tf-plan          # Preview changes
+mise run tf-apply         # Apply changes
 ```
 
 ### Available Commands
 
-Type `just` to see all available commands:
+List all available tasks:
 
 ```bash
-❯ just
-Available recipes:
-    [terraform]
-    tf-create-backend  # Create GCS backend bucket
-    tf-init           # Initialize backend and workspace
-    tf-plan           # Preview infrastructure changes
-    tf-apply          # Apply Terraform changes
-    tf-destroy        # Destroy infrastructure
-
-    [docker]
-    docker-build      # Build Docker images
-    docker-push       # Push to GCP Artifact Registry
-
-    [ci]
-    publish           # Publish package
-    deploy            # Deploy application
+mise tasks
 ```
 
 ## CI/CD Workflows
@@ -129,10 +112,10 @@ Deploy to stage/prod via GitHub Actions:
 ├── scripts/           # Build and setup scripts
 ├── src/               # Source code (customize)
 ├── test/              # Test files (customize)
-├── .envrc             # Environment variables
+├── mise.toml          # Dev tools and environment configuration
+├── .mise-tasks/       # Task scripts (mise run <task>)
 ├── Dockerfile         # Container definition
 ├── docker-compose.yml # Local development
-├── justfile           # Command definitions
 └── README.md          # Project overview
 ```
 
@@ -152,13 +135,15 @@ COPY . .
 CMD ["python", "src/main.py"]
 ```
 
-Update `justfile` build-prod recipe:
+Update `.mise-tasks/build-prod`:
 
-```just
+```bash
+#!/usr/bin/env bash
+#MISE description="Build production artifact"
+set -euo pipefail
 # Python example
-build-prod:
-    python -m build
-    cp dist/*.whl dist/artifact.txt
+python -m build
+cp dist/*.whl dist/artifact.txt
 ```
 
 ## Documentation
@@ -170,8 +155,7 @@ build-prod:
 ## References
 
 - [Terraform Documentation](https://www.terraform.io/docs)
-- [just command runner](https://github.com/casey/just)
-- [direnv environment management](https://direnv.net/)
+- [mise dev tool manager](https://mise.jdx.dev/)
 - [semantic-release](https://semantic-release.gitbook.io/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions](https://docs.github.com/en/actions)

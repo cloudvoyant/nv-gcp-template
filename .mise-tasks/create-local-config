@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#MISE description="Generate .env.local from GCP Secret Manager + Terraform outputs"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE="${1:-}"
+ENV="${2:-nonprod}"
+
+if [ -z "${WORKSPACE}" ] || [ "${WORKSPACE}" = "local" ]; then
+  WORKSPACE="$(infer_terraform_workspace)"
+fi
+SECRET_NAME="${PROJECT}-secrets-${ENV}"
+log_info "Fetching secrets for workspace=${WORKSPACE}, env=${ENV}..."
+APP_SECRETS=$(gcloud secrets versions access latest \
+  --secret="${SECRET_NAME}" \
+  --project="${GCP_DEVOPS_PROJECT_ID}")
+KINDE_DOMAIN=$(echo "${APP_SECRETS}" | grep "^KINDE_DOMAIN=" | cut -d'=' -f2-)
+KINDE_CLIENT_ID=$(echo "${APP_SECRETS}" | grep "^KINDE_CLIENT_ID=" | cut -d'=' -f2-)
+KINDE_CLIENT_SECRET=$(echo "${APP_SECRETS}" | grep "^KINDE_CLIENT_SECRET=" | cut -d'=' -f2-)
+
+FIRESTORE_DB="${PROJECT}-${WORKSPACE}"
+
+cd infra/environments
+if terraform workspace select "${WORKSPACE}" 2>/dev/null; then
+  GCS_PUBLIC_BUCKET="${PROJECT}-public"
+  GCS_PRIVATE_BUCKET=$(terraform output -raw private_bucket_name 2>/dev/null || echo "")
+  GCS_SA_EMAIL=$(terraform output -raw service_account_email 2>/dev/null || echo "")
+  if [ -z "${GCS_PRIVATE_BUCKET}" ]; then
+    log_warn "No Terraform outputs found. Run 'mise run tf-apply ${WORKSPACE}' first."
+  fi
+else
+  log_warn "Workspace ${WORKSPACE} does not exist yet — Terraform outputs will be empty."
+  log_warn "Run 'mise run tf-apply ${WORKSPACE}' to deploy infrastructure first."
+  GCS_PUBLIC_BUCKET="${PROJECT}-public"
+  GCS_PRIVATE_BUCKET=""
+  GCS_SA_EMAIL=""
+fi
+cd ../..
+
+{
+  printf "VITE_KINDE_DOMAIN=%s\n" "${KINDE_DOMAIN}"
+  printf "VITE_KINDE_CLIENT_ID=%s\n" "${KINDE_CLIENT_ID}"
+  printf "KINDE_CLIENT_SECRET=%s\n" "${KINDE_CLIENT_SECRET}"
+  printf "GCP_PROJECT_ID=%s\n" "${GCP_PROJECT_ID}"
+  printf "ENVIRONMENT=%s\n" "${WORKSPACE}"
+  printf "GCS_PUBLIC_BUCKET_NAME=%s\n" "${GCS_PUBLIC_BUCKET}"
+  printf "GCS_PRIVATE_BUCKET_NAME=%s\n" "${GCS_PRIVATE_BUCKET}"
+  printf "GCS_SERVICE_ACCOUNT_EMAIL=%s\n" "${GCS_SA_EMAIL}"
+  printf "FIRESTORE_DATABASE_ID=%s\n" "${FIRESTORE_DB}"
+} > apps/web/.env.local
+log_success "apps/web/.env.local generated for workspace ${WORKSPACE}"

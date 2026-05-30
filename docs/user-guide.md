@@ -1,6 +1,6 @@
 # User Guide
 
-A practical guide for developers building on a project scaffolded from nv-gcp-template.
+A practical guide for developers building on a project scaffolded from mise-app-template.
 
 ---
 
@@ -10,34 +10,33 @@ A practical guide for developers building on a project scaffolded from nv-gcp-te
 
 ```bash
 # Option 1: Using Nedavellir CLI
-nv create your-project --template nv-gcp-template
+nv create your-project --template mise-app-template
 
 # Option 2: Manual scaffold
 git clone <your-repo>
 cd <your-repo>
-bash scripts/scaffold.sh --project your-project
+mise run scaffold --project your-project
 ```
 
 ### 2. Configure GCP Projects
 
-Edit `.envrc` with your project IDs and region:
+Edit `mise.local.toml` (copy from `mise.local.toml.example`) with your project IDs and region:
 
-```bash
-# DevOps project (hosts tfstate, artifact registry, docker registry)
-export GCP_DEVOPS_PROJECT_ID=my-devops-project
-export GCP_DEVOPS_PROJECT_REGION=us-east1
-export GCP_DEVOPS_REGISTRY_NAME=my-artifact-registry
-export GCP_DEVOPS_DOCKER_REGISTRY_NAME=my-docker-registry
+```toml
+[env]
+GCP_DEVOPS_PROJECT_ID = "my-devops-project"
+GCP_DEVOPS_PROJECT_REGION = "us-east1"
+GCP_DEVOPS_REGISTRY_NAME = "my-artifact-registry"
+GCP_DEVOPS_DOCKER_REGISTRY_NAME = "my-docker-registry"
 
-# Infrastructure project (where your app resources are provisioned)
-export GCP_PROJECT_ID=my-app-project
-export GCP_REGION=us-east1
+GCP_PROJECT_ID = "my-app-project"
+GCP_REGION = "us-east1"
 ```
 
-Allow direnv to load the variables:
+Then install dev tools:
 
 ```bash
-direnv allow
+mise install
 ```
 
 ### 3. Set Up Kinde Authentication
@@ -127,15 +126,15 @@ BASE_DOMAIN=your-domain.com" | \
 One-time setup to provision the GCS bucket used for Terraform state:
 
 ```bash
-just tf-create-backend
+mise run tf-create-backend
 ```
 
 ### 7. Deploy Infrastructure
 
 ```bash
-just tf-init
-just tf-plan
-just tf-apply
+mise run tf-init
+mise run tf-plan
+mise run tf-apply
 ```
 
 ### 8. Run Locally
@@ -249,13 +248,13 @@ End-to-end tests use Playwright and run against a real authenticated user sessio
 
 ```bash
 # Fetch secrets from GCP Secret Manager (one-time, or after rotation)
-just fetch-e2e-secrets
+mise run fetch-e2e-secrets
 
 # Run tests against the local dev server
-just test-e2e
+mise run test-e2e
 
 # Run tests against a specific deployed environment
-just test-e2e stage
+mise run test-e2e stage
 ```
 
 ### How It Works
@@ -276,7 +275,7 @@ test.use({ storageState: "e2e/.auth/p1.json" });
 ```
 
 3. Prefix any filenames created during the test with `[E2E]` so teardown cleans them up
-4. Run `just test-e2e` to verify locally before pushing
+4. Run `mise run test-e2e` to verify locally before pushing
 
 ---
 
@@ -293,36 +292,37 @@ pnpm dev
 
 | File                      | Purpose                                             | Committed? |
 | ------------------------- | --------------------------------------------------- | ---------- |
-| `.envrc`                  | Non-secret environment config (project IDs, region) | Yes        |
+| `mise.toml`               | Non-secret environment config (project IDs, region) | Yes        |
+| `mise.local.toml`         | Local overrides (developer-specific GCP IDs)        | No         |
 | `apps/web/.env.local`     | Local secrets (Kinde credentials)                   | No         |
 | `apps/web/.env.e2e.local` | E2E test config (test user email)                   | No         |
 
 ### Running Tests
 
 ```bash
-just test
+mise run test
 ```
 
 After scaffolding, implement your own tests:
 
-1. Create test files in `test/` with `.bats` extension
-2. Update the `test` recipe in `justfile` if needed
+1. Create test files in `template-tests/` with `.bats` extension
+2. Update `.mise-tasks/test` if needed
 3. Tests run automatically in CI on every push
 
 ### Local Docker Operations
 
 ```bash
 # Build with current version from version.txt
-just docker-build
+mise run docker-build
 
 # Build with a custom tag
-just docker-build my-feature-tag
+mise run docker-build my-feature-tag
 
 # Push to registry (requires gcloud auth)
-just docker-push
+mise run docker-push
 
 # Push with a custom tag
-just docker-push my-feature-tag
+mise run docker-push my-feature-tag
 ```
 
 The image name follows this pattern:
@@ -335,10 +335,10 @@ ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOP
 
 ```bash
 # Publish release version (uses version.txt)
-just publish
+mise run publish
 
 # Publish a pre-release with a custom tag
-just publish my-test-tag
+mise run publish my-test-tag
 # Creates version: 1.0.3-rc.my-test-tag
 ```
 
@@ -347,14 +347,14 @@ just publish my-test-tag
 Toggle file visibility to reduce noise while working:
 
 ```bash
-# Hide infrastructure files — shows only: docs/, src/, test/, .claude/, .envrc, justfile, README.md
-just hide
+# Hide infrastructure files — shows only: docs/, src/, template-tests/, .claude/, mise.toml, README.md
+mise run hide
 
-# Show all files including .github/, .vscode/, Dockerfile, scripts/, etc.
-just show
+# Show all files including .github/, .vscode/, Dockerfile, .mise-tasks/, etc.
+mise run show
 ```
 
-Note: hidden files do not appear in VS Code search (Cmd+Shift+F) until you run `just show`.
+Note: hidden files do not appear in VS Code search (Cmd+Shift+F) until you run `mise run show`.
 
 ---
 
@@ -366,16 +366,16 @@ Check that your Kinde callback URL exactly matches `{origin}/auth/callback`. A t
 
 ### E2E Tests Failing with Auth Errors
 
-Re-run `just fetch-e2e-secrets` to refresh credentials, then delete the saved auth state and rerun:
+Re-run `mise run fetch-e2e-secrets` to refresh credentials, then delete the saved auth state and rerun:
 
 ```bash
 rm apps/web/e2e/.auth/p1.json
-just test-e2e
+mise run test-e2e
 ```
 
 ### Firestore Index Required Error
 
-Composite indexes are managed via Terraform, not `firestore.indexes.json`. Run `just tf-apply` to provision the index, then wait 2-3 minutes for it to build before retrying.
+Composite indexes are managed via Terraform, not `firestore.indexes.json`. Run `mise run tf-apply` to provision the index, then wait 2-3 minutes for it to build before retrying.
 
 ### Terraform State Lock
 
@@ -396,7 +396,7 @@ Check the cleanup workflow logs in GitHub Actions. Common causes:
 Manually destroy the preview workspace:
 
 ```bash
-just tf-destroy proj-123 --auto-approve
+mise run tf-destroy proj-123 --auto-approve
 ```
 
 ### Docker Push Authentication Failed
@@ -418,5 +418,5 @@ Check that the service account has the `artifactregistry.writer` role on the Dev
 
 - Review [architecture.md](architecture.md) for system design principles
 - Customize `infra/modules/` for your infrastructure needs
-- Update the `deploy` recipe in `justfile` for your deployment method
+- Update `.mise-tasks/deploy` for your deployment method
 - Set up monitoring and alerting for your GCP resources

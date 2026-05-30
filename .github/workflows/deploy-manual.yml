@@ -44,9 +44,9 @@ jobs:
 
       - name: Build and Push Web App Docker Image
         run: |
-          just docker-build web "v${{ inputs.version }}"
-          just docker-login
-          just docker-push web "v${{ inputs.version }}"
+          mise run docker-build web "v${{ inputs.version }}"
+          mise run docker-login
+          mise run docker-push web "v${{ inputs.version }}"
 
       - name: Get Docker Image Name
         id: docker_image
@@ -58,18 +58,18 @@ jobs:
         env:
           WORKSPACE: ${{ inputs.environment }}
           TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
-        run: just tf-plan "${WORKSPACE}"
+        run: mise run tf-plan "${WORKSPACE}"
 
       - name: Terraform Apply
         env:
           WORKSPACE: ${{ inputs.environment }}
           TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
-        run: just tf-apply "${WORKSPACE}" --auto-approve
+        run: mise run tf-apply "${WORKSPACE}" --auto-approve
 
       - name: Deploy Application
         env:
           WORKSPACE: ${{ inputs.environment }}
-        run: just deploy "${WORKSPACE}"
+        run: mise run deploy "${WORKSPACE}"
 
       - name: Deployment Summary
         run: |

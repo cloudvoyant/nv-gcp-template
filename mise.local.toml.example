@@ -1,0 +1,6 @@
+# mise.local.toml — local developer overrides (copy this file, gitignored)
+# Override any [env] values from mise.toml for your local environment.
+
+[env]
+# GCP_PROJECT_ID = "my-personal-gcp-project-123"
+# GCP_DEVOPS_PROJECT_ID = "my-devops-project-456"

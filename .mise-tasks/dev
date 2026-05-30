@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Run project locally (dev server)"
+set -euo pipefail
+pnpm --filter "@${PROJECT}/web" dev

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Get service URL for a deployed environment"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+cd infra/environments
+terraform workspace select "${WORKSPACE_NAME}" >/dev/null 2>&1
+terraform output -raw app_public_url

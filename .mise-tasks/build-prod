@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Build for production"
+set -euo pipefail
+mkdir -p dist
+echo "${PROJECT} ${VERSION} - Replace with your build artifact" > dist/artifact.txt
+printf '\033[0;32mProduction artifact created: dist/artifact.txt\033[0m\n'
+# App is built and deployed via Docker (mise run docker-build / mise run docker-push)
+# Uncomment to also run pnpm build here if needed:
+# pnpm --filter "@${PROJECT}/web" build

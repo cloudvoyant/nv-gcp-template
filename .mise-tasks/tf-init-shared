@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Initialize shared Terraform backend (CDN, public bucket)"
+set -euo pipefail
+terraform -chdir=infra/shared init \
+  -backend-config="bucket=${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage" \
+  -backend-config="prefix=${GCP_PROJECT_ID}/${PROJECT}/shared"

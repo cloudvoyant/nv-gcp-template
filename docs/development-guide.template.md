@@ -7,8 +7,7 @@
 ### Prerequisites
 
 - Git - Version control
-- just - Command runner ([installation](https://github.com/casey/just#installation))
-- direnv - Environment management ([installation](https://direnv.net/docs/installation.html))
+- [mise](https://mise.jdx.dev/) - Tool version management and task runner
 - Docker - Container runtime (optional)
 - gcloud CLI - Google Cloud tools
 
@@ -21,35 +20,34 @@
    cd {{PROJECT_NAME}}
    ```
 
-2. Run setup script:
+2. Install all dev tools and dependencies:
 
    ```bash
-   bash scripts/setup.sh --dev
+   mise install
    ```
 
-   This installs development tools (docker, gcloud, shellcheck, shfmt), Node.js, semantic-release, and optional tools.
+   mise reads `mise.toml` and installs the correct versions of node, pnpm, terraform, bats, shellcheck, and shfmt.
 
 3. Configure environment:
 
    ```bash
-   # Allow direnv to load .envrc
-   direnv allow
-
-   # Verify environment
+   # Verify environment variables
+   mise env
    echo $PROJECT
    echo $VERSION
    ```
 
+   Override defaults by creating `mise.local.toml` (see `mise.local.toml.example`).
+
 4. Authenticate with GCP:
 
    ```bash
-   gcloud auth login
-   gcloud auth application-default login
+   mise run gcp-login
    ```
 
 5. Create Terraform backend (one-time setup):
    ```bash
-   just tf-create-backend
+   mise run tf-create-backend
    ```
 
 ## CI/CD Workflows
@@ -115,29 +113,29 @@ For stage/prod deployments:
 
 ## Development Commands
 
-Common commands using `just`:
+Common commands using `mise run`:
 
 ```bash
-# List all available commands
-just
+# List all available tasks
+mise tasks
 
 # Terraform operations
-just tf-init          # Initialize backend and workspace
-just tf-plan          # Preview infrastructure changes
-just tf-apply         # Apply changes
-just tf-destroy       # Destroy infrastructure
+mise run tf-init          # Initialize backend and workspace
+mise run tf-plan          # Preview infrastructure changes
+mise run tf-apply         # Apply changes
+mise run tf-destroy       # Destroy infrastructure
 
 # Docker operations
-just docker-build     # Build Docker images
-just docker-push      # Push to GCP Artifact Registry
+mise run docker-build     # Build Docker images
+mise run docker-push      # Push to GCP Artifact Registry
 
 # Development
-just build            # Build project
-just run              # Run locally
-just test             # Run tests
-just format           # Format code
-just lint             # Lint code
-just clean            # Clean build artifacts
+mise run build            # Build project
+mise run run              # Run locally
+mise run test             # Run tests
+mise run format           # Format code
+mise run lint             # Lint code
+mise run clean            # Clean build artifacts
 ```
 
 ## Web App Development
@@ -184,13 +182,13 @@ Auth flows are handled entirely by `libs/auth`. Import `@{{PROJECT_NAME}}/auth` 
 
 ```bash
 # Fetch E2E secrets from Secret Manager to .env.e2e.local
-just fetch-e2e-secrets
+mise run fetch-e2e-secrets
 
 # Seed Firestore with test data
-just seed-e2e
+mise run seed-e2e
 
 # Run the full Playwright suite (fetches secrets automatically if missing)
-just test-e2e
+mise run test-e2e
 ```
 
 ### Adding Tests
@@ -228,16 +226,16 @@ Global teardown runs after every suite and cleans up any Firestore documents who
 3. Test locally:
 
    ```bash
-   just test
-   just lint
-   just format-check
+   mise run test
+   mise run lint
+   mise run format-check
    ```
 
 4. Test infrastructure changes:
 
    ```bash
-   just tf-plan
-   just tf-apply
+   mise run tf-plan
+   mise run tf-apply
    ```
 
 5. Commit using conventional commits:
@@ -263,20 +261,20 @@ Manual workspace operations:
 
 ```bash
 # List all workspaces
-just tf-list-workspaces
+mise run tf-list-workspaces
 
 # Create/select workspace
-just tf-select-workspace dev
+mise run tf-select-workspace dev
 
 # Auto-infer workspace from branch
-just tf-select-workspace
+mise run tf-select-workspace
 ```
 
 ## Customizing for Your Language
 
 ### Docker Image
 
-Update `Dockerfile` with your language's build process:
+Update `dockerfiles/base.dockerfile` with your language's build process:
 
 ```dockerfile
 # Python example
@@ -310,32 +308,30 @@ CMD ["node", "src/index.js"]
 
 ### Package Publishing
 
-Update `build-prod` recipe in `justfile`:
+Update `build-prod` task in `.mise-tasks/build-prod`:
 
-```just
+```bash
 # Python example
-build-prod:
-    python -m build
-    cp dist/*.whl dist/artifact.txt
+pip install build
+python -m build
+cp dist/*.whl dist/artifact.txt
 
 # Go example
-build-prod:
-    GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux-amd64
-    echo "myapp-linux-amd64" > dist/artifact.txt
+GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux-amd64
+echo "myapp-linux-amd64" > dist/artifact.txt
 
 # Node.js example
-build-prod:
-    npm run build
-    npm pack --pack-destination=dist/
-    ls dist/*.tgz > dist/artifact.txt
+pnpm build
+pnpm pack --pack-destination=dist/
+ls dist/*.tgz > dist/artifact.txt
 ```
 
-The `publish` recipe automatically uploads to GCP Artifact Registry:
+The `publish` task automatically uploads to GCP Artifact Registry:
 
 - Release builds: `app@1.2.3`
 - Preview builds: `app@1.0.3-rc.proj-123`
 
-Optionally publish to language-specific registries (npm, PyPI, etc.) by modifying the `publish` recipe.
+Optionally publish to language-specific registries (npm, PyPI, etc.) by modifying the `publish` task.
 
 ## Project Structure
 
@@ -354,9 +350,8 @@ Optionally publish to language-specific registries (npm, PyPI, etc.) by modifyin
 │   ├── shared/            # CDN + public bucket (one-time setup)
 │   ├── environments/      # Per-workspace Cloud Run + Firestore + bucket
 │   └── modules/           # Reusable Terraform modules
-├── scripts/               # Build and setup scripts
-├── .envrc                 # Environment variables (committed)
-├── justfile               # All commands
+├── .mise-tasks/           # All task scripts (auto-discovered by mise)
+├── mise.toml              # Tool versions, environment, task runner config
 └── README.md
 ```
 
@@ -366,13 +361,13 @@ Optionally publish to language-specific registries (npm, PyPI, etc.) by modifyin
 
 ```bash
 # Run all tests
-just test
+mise run test
 ```
 
 After scaffolding, implement your own tests:
 
-1. Create test files in `test/` directory
-2. Update `test` recipe in justfile
+1. Create test files in your preferred test directory
+2. Update the `test` task in `.mise-tasks/test`
 3. Tests run automatically in CI
 
 ### Viewing Hidden Files (VS Code)
@@ -381,13 +376,13 @@ Toggle file visibility to focus on code or see full project structure:
 
 ```bash
 # Hide infrastructure files
-just hide
+mise run hide
 
 # Show all files
-just show
+mise run show
 ```
 
-Limitation: Hidden files won't appear in VS Code search (Cmd+Shift+F) unless you run `just show` first.
+Limitation: Hidden files won't appear in VS Code search (Cmd+Shift+F) unless you run `mise run show` first.
 
 ## Versioning
 
@@ -402,7 +397,7 @@ Versions are determined automatically by semantic-release based on commit messag
 Check current version:
 
 ```bash
-just version
+mise run version
 ```
 
 ## Pull Request Process
@@ -415,14 +410,14 @@ just version
 
 ## Troubleshooting
 
-### Environment not loading
+### Tools not found after clone
 
 ```bash
-# Check direnv status
-direnv status
+# Reinstall all tools
+mise install
 
-# Re-allow direnv
-direnv allow
+# Verify tool versions
+mise list
 ```
 
 ### Terraform state lock
@@ -435,7 +430,7 @@ terraform force-unlock <LOCK_ID>
 ### Docker authentication failed
 
 ```bash
-gcloud auth login
+mise run gcp-login
 gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
 ```
 
@@ -443,8 +438,8 @@ gcloud auth configure-docker ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev
 
 ```bash
 # Clean and rebuild
-just clean
-just build
+mise run clean
+mise run build
 ```
 
 ## Contributing Guidelines

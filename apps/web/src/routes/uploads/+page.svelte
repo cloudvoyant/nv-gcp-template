@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { Button } from "@nv-gcp-template/ui/components/button";
+  import { Button } from "@mise-app-template/ui/components/button";
   let { data }: { data: PageData } = $props();
 </script>
 

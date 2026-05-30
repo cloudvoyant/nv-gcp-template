@@ -6,7 +6,7 @@ import {
   getUserInfo,
 } from "./kinde-client";
 
-export const SESSION_COOKIE_NAME = `${process.env.PROJECT ?? "nv-gcp-template"}_session`;
+export const SESSION_COOKIE_NAME = `${process.env.PROJECT ?? "mise-app-template"}_session`;
 
 export function createSession(
   user: Session["user"],

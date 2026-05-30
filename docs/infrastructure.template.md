@@ -18,8 +18,8 @@ Applied **once per project** when first setting up. Creates:
 - Public GCS bucket for served assets (images, static files)
 
 ```bash
-just tf-shared-init
-just tf-shared-apply
+mise run tf-init-shared
+mise run tf-apply-shared
 ```
 
 This root does not use workspaces — it provisions resources shared across all environments.
@@ -33,8 +33,8 @@ Applied **per workspace** (preview, dev, stage, prod). Creates:
 - Private GCS bucket for user uploads
 
 ```bash
-just tf-init      # Infers workspace from current branch
-just tf-apply
+mise run tf-init      # Infers workspace from current branch
+mise run tf-apply
 ```
 
 ## Terraform Infrastructure
@@ -164,7 +164,7 @@ resource "google_firestore_index" "uploads_by_user_created" {
 Then apply:
 
 ```bash
-just tf-apply
+mise run tf-apply
 ```
 
 Wait 2-3 minutes for the index to build before the query is usable in the app.
@@ -276,27 +276,27 @@ Steps:
 
 ### Local Development
 
-Edit `.envrc` with your configuration:
+Edit `mise.local.toml` (copy from `mise.local.toml.example`) with your configuration:
 
-```bash
-export PROJECT={{PROJECT_NAME}}
-export VERSION=$(get_version)
+```toml
+[env]
+PROJECT = "{{PROJECT_NAME}}"
 
 # DevOps project (hosts tfstate, artifact registry, docker registry)
-export GCP_DEVOPS_PROJECT_ID=my-devops-project
-export GCP_DEVOPS_PROJECT_REGION=us-east1
-export GCP_DEVOPS_REGISTRY_NAME=my-artifact-registry
-export GCP_DEVOPS_DOCKER_REGISTRY_NAME=my-docker-registry
+GCP_DEVOPS_PROJECT_ID = "my-devops-project"
+GCP_DEVOPS_PROJECT_REGION = "us-east1"
+GCP_DEVOPS_REGISTRY_NAME = "my-artifact-registry"
+GCP_DEVOPS_DOCKER_REGISTRY_NAME = "my-docker-registry"
 
 # Infrastructure project (where resources are provisioned)
-export GCP_PROJECT_ID=my-app-project
-export GCP_REGION=us-east1
+GCP_PROJECT_ID = "my-app-project"
+GCP_REGION = "us-east1"
 ```
 
-Allow direnv:
+Then install tools:
 
 ```bash
-direnv allow
+mise install
 ```
 
 ### CI/CD Secrets
@@ -346,29 +346,29 @@ Configure approval requirements in GitHub Settings → Environments:
 
 ```bash
 # Initialize backend and workspace
-just tf-init
+mise run tf-init
 
 # Preview infrastructure changes
-just tf-plan
+mise run tf-plan
 
 # Apply changes
-just tf-apply
+mise run tf-apply
 
 # Destroy infrastructure (with confirmation)
-just tf-destroy
+mise run tf-destroy
 ```
 
 ### Workspace Management
 
 ```bash
 # List all workspaces
-just tf-list-workspaces
+mise run tf-list-workspaces
 
 # Create/select workspace
-just tf-select-workspace dev
+mise run tf-select-workspace dev
 
 # Auto-infer workspace from branch
-just tf-select-workspace
+mise run tf-select-workspace
 ```
 
 Workspace is automatically inferred from git branch:
@@ -383,16 +383,16 @@ Workspace is automatically inferred from git branch:
 
 ```bash
 # Build with current version from version.txt
-just docker-build
+mise run docker-build
 
 # Build with custom tag
-just docker-build my-feature-tag
+mise run docker-build my-feature-tag
 
 # Push to registry (requires gcloud auth)
-just docker-push
+mise run docker-push
 
 # Push with custom tag
-just docker-push my-feature-tag
+mise run docker-push my-feature-tag
 ```
 
 Image naming pattern:
@@ -405,10 +405,10 @@ ${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOP
 
 ```bash
 # Publish release version (uses version.txt)
-just publish
+mise run publish
 
 # Publish pre-release with tag
-just publish my-test-tag
+mise run publish my-test-tag
 # Creates version: 1.0.3-rc.my-test-tag
 ```
 
@@ -433,7 +433,7 @@ Check cleanup workflow logs in GitHub Actions. Common issues:
 Manually clean up:
 
 ```bash
-just tf-destroy proj-123 --auto-approve
+mise run tf-destroy proj-123 --auto-approve
 ```
 
 ### Docker Push Authentication Failed

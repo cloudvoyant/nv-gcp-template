@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="List all Terraform workspaces"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+log_info "Listing Terraform workspaces..."
+cd infra/environments
+terraform workspace list

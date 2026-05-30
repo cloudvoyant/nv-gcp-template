@@ -140,3 +140,10 @@ test-results/
 .claude/
 !.claude/skills/
 apps/web/e2e/.auth/storageState.json
+
+# codevoyant
+.codevoyant/worktrees/
+
+# mise local config (developer overrides)
+mise.local.toml
+.mise.local.toml

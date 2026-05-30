@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#MISE description="Create/select Terraform workspace (auto-infers from branch or accepts explicit workspace)"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+if [ -z "${WORKSPACE_NAME}" ]; then
+    WORKSPACE_NAME="$(infer_terraform_workspace)"
+    log_info "Auto-detected workspace from branch: ${WORKSPACE_NAME}"
+else
+    log_info "Using explicit workspace: ${WORKSPACE_NAME}"
+fi
+
+cd infra/environments
+
+# Check if workspace exists
+if terraform workspace list | grep -q "^[* ]*${WORKSPACE_NAME}$"; then
+    log_info "Selecting existing workspace: ${WORKSPACE_NAME}"
+    terraform workspace select "${WORKSPACE_NAME}"
+else
+    log_info "Creating new workspace: ${WORKSPACE_NAME}"
+    terraform workspace new "${WORKSPACE_NAME}"
+fi
+
+log_success "Active workspace: ${WORKSPACE_NAME}"

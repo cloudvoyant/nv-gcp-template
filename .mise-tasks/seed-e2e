@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Seed E2E test data for a given workspace"
+set -euo pipefail
+
+WORKSPACE="${1:-local}"
+
+if [ ! -f apps/web/.env.e2e.local ]; then
+  mise run fetch-e2e-secrets
+fi
+# Load all E2E vars (credentials + workspace-specific GCP vars) from .env.e2e.local
+set -a
+# shellcheck disable=SC1091
+source apps/web/.env.e2e.local
+set +a
+WORKSPACE="${WORKSPACE}" npx tsx apps/web/scripts/seed-uploads.ts

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#MISE description="Create GCS backend bucket for Terraform state"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+BUCKET_NAME="${GCP_DEVOPS_PROJECT_ID}-terraform-backend-storage"
+
+log_info "Checking for shared GCS backend bucket: ${BUCKET_NAME}"
+
+if gsutil ls -b "gs://${BUCKET_NAME}" > /dev/null 2>&1; then
+    log_success "Backend bucket already exists: ${BUCKET_NAME}"
+else
+    log_info "Creating shared tfstate bucket in DevOps project..."
+    gsutil mb -p "${GCP_DEVOPS_PROJECT_ID}" -l "${GCP_DEVOPS_PROJECT_REGION}" "gs://${BUCKET_NAME}"
+    gsutil versioning set on "gs://${BUCKET_NAME}"
+    log_success "Backend bucket created: ${BUCKET_NAME}"
+fi

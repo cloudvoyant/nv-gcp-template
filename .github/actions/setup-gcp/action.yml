@@ -20,6 +20,12 @@ runs:
     - name: Set GCP project
       shell: bash
       run: |
-        source .envrc
-        gcloud config set project ${GCP_DEVOPS_PROJECT_ID}
+        # Load mise env vars into the shell and export to GITHUB_ENV
+        eval "$(mise env --shell bash)"
+        gcloud config set project "${GCP_DEVOPS_PROJECT_ID}"
         echo "Active project: $(gcloud config get-value project)"
+        # Export all GCP vars to subsequent steps
+        echo "GCP_DEVOPS_PROJECT_ID=${GCP_DEVOPS_PROJECT_ID}" >> $GITHUB_ENV
+        echo "GCP_PROJECT_ID=${GCP_PROJECT_ID}" >> $GITHUB_ENV
+        echo "GCP_REGION=${GCP_REGION}" >> $GITHUB_ENV
+        echo "PROJECT=${PROJECT}" >> $GITHUB_ENV

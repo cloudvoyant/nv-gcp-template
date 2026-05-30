@@ -93,7 +93,7 @@ async function globalSetup() {
 
   // Pre-clean stale E2E records from any previous failed teardown
   try {
-    execSync("npx tsx scripts/pre-cleanup-e2e.ts", {
+    execSync("npx tsx apps/web/scripts/pre-cleanup-e2e.ts", {
       stdio: "inherit",
       cwd: REPO_ROOT,
     });
@@ -105,7 +105,7 @@ async function globalSetup() {
 
   // Ensure P1 user record is correct before seeding
   try {
-    execSync("npx tsx scripts/pre-setup-p1-e2e.ts", {
+    execSync("npx tsx apps/web/scripts/pre-setup-p1-e2e.ts", {
       stdio: "inherit",
       cwd: REPO_ROOT,
     });

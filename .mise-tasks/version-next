@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Get next version (from semantic-release)"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+get_next_version

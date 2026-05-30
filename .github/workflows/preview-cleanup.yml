@@ -34,7 +34,7 @@ jobs:
       - name: Extract Issue ID
         id: issue
         run: |
-          source ./scripts/utils.sh
+          source .mise-tasks/utils.sh
           # For PR close, use head branch; for delete, use ref name
           BRANCH_NAME="${{ github.event.pull_request.head.ref || github.event.ref }}"
           ISSUE_ID=$(extract_issue_id "${BRANCH_NAME}")
@@ -44,7 +44,7 @@ jobs:
       - name: Terraform Destroy
         env:
           WORKSPACE: ${{ steps.issue.outputs.issue_id }}
-        run: just tf-destroy "${WORKSPACE}" --auto-approve
+        run: mise run tf-destroy "${WORKSPACE}" --auto-approve
 
       - name: Mark Preview Deployments as Inactive
         uses: actions/github-script@v7

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Build Docker image (builds base first, then the specified service)"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+SERVICE="${1:-web}"
+TAG="${2:-}"
+ACTUAL_TAG="${TAG:-${VERSION}}"
+
+log_info "Building base image..."
+docker compose build base
+log_info "Building ${SERVICE} image (tag: ${ACTUAL_TAG})..."
+VERSION="${ACTUAL_TAG}" docker compose build "${SERVICE}"
+log_success "Docker image built"

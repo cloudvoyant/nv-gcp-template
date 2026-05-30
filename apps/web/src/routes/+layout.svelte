@@ -1,7 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import type { LayoutData } from "./$types";
-  import { Button } from "@nv-gcp-template/ui/components/button";
+  import { Button } from "@mise-app-template/ui/components/button";
 
   let {
     children,
@@ -13,7 +13,7 @@
 <div class="flex flex-col h-screen">
   <nav class="border-b bg-background px-6 py-3 sticky top-0 z-10">
     <div class="mx-auto flex max-w-4xl items-center gap-6">
-      <a href="/" class="font-semibold text-sm">nv-gcp-template</a>
+      <a href="/" class="font-semibold text-sm">mise-app-template</a>
       {#if session}
         <Button variant="ghost" size="sm" href="/uploads/new">Upload</Button>
         <Button variant="ghost" size="sm" href="/uploads">My Uploads</Button>

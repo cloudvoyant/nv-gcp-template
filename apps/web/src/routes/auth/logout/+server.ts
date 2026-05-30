@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { SESSION_COOKIE_NAME, getLogoutUrl } from "@nv-gcp-template/auth";
+import { SESSION_COOKIE_NAME, getLogoutUrl } from "@mise-app-template/auth";
 
 export const prerender = false;
 

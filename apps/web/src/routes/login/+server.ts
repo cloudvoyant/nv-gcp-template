@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getAuthorizationUrl } from "@nv-gcp-template/auth";
+import { getAuthorizationUrl } from "@mise-app-template/auth";
 
 export const prerender = false;
 

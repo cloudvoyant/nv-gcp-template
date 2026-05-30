@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Authenticate Docker with GCP Artifact Registry"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+log_info "Configuring Docker authentication for Artifact Registry..."
+gcloud auth configure-docker "${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev" --quiet
+log_success "Docker authenticated"

@@ -7,11 +7,11 @@
 The project is organized as a pnpm workspace monorepo with a feature-slice layout:
 
 - `apps/web` — SvelteKit full-stack application deployed to Cloud Run. Handles routing, server-side rendering, API endpoints (`+server.ts`), and page load functions.
-- `libs/auth` — Published as `@nv-gcp-template/auth`. Kinde OAuth 2.0 client and session management. **Server-only** — never import this in browser code. Exposes `initKindeConfig()`, token verification via JWKS, and silent refresh logic consumed by `hooks.server.ts`.
-- `libs/storage` — Published as `@nv-gcp-template/storage`. GCS client, signed URL generation, and browser-side image resizing. Mixed boundary: `client.ts` and `resize.ts` are browser-safe; `operations.ts` is server-only.
-- `libs/ui` — Published as `@nv-gcp-template/ui`. shadcn-svelte component library (Button, Input, FileDropZone, etc.). Browser-only Svelte components. Tailwind must scan `libs/ui/src/**` in `tailwind.config.js` so component class names are included in the build output.
+- `libs/auth` — Published as `@mise-app-template/auth`. Kinde OAuth 2.0 client and session management. **Server-only** — never import this in browser code. Exposes `initKindeConfig()`, token verification via JWKS, and silent refresh logic consumed by `hooks.server.ts`.
+- `libs/storage` — Published as `@mise-app-template/storage`. GCS client, signed URL generation, and browser-side image resizing. Mixed boundary: `client.ts` and `resize.ts` are browser-safe; `operations.ts` is server-only.
+- `libs/ui` — Published as `@mise-app-template/ui`. shadcn-svelte component library (Button, Input, FileDropZone, etc.). Browser-only Svelte components. Tailwind must scan `libs/ui/src/**` in `tailwind.config.js` so component class names are included in the build output.
 
-pnpm workspaces tie these packages together. Cross-package imports use the package name (e.g. `@nv-gcp-template/auth`), not relative paths, to respect boundary enforcement.
+pnpm workspaces tie these packages together. Cross-package imports use the package name (e.g. `@mise-app-template/auth`), not relative paths, to respect boundary enforcement.
 
 ### Infrastructure
 
@@ -50,23 +50,23 @@ All GCP resources follow the naming pattern `{project}-{environment}--{resource-
 
 Three workflow files in `.github/workflows/` cover the full deployment lifecycle:
 
-- **`preview.yml`** — Triggers on feature/bugfix/hotfix branch pushes. Infers workspace from branch name (e.g. `feature/PL-3-foo` → `pl-3`), runs `just tf-init`, `just tf-plan`, `just tf-apply` to provision preview infrastructure. On branch delete or merge, runs `just tf-destroy` to clean up.
+- **`preview.yml`** — Triggers on feature/bugfix/hotfix branch pushes. Infers workspace from branch name (e.g. `feature/PL-3-foo` → `pl-3`), runs `mise run tf-init`, `mise run tf-plan`, `mise run tf-apply` to provision preview infrastructure. On branch delete or merge, runs `mise run tf-destroy` to clean up.
 - **`release.yml`** — Triggers on merge to `main`. Runs semantic-release to produce a version bump and changelog, then builds and deploys to the `dev` workspace. No approval required.
 - **`deploy-manual.yml`** — Workflow dispatch triggered by a tagged release. Deploys to `stage` (with GitHub environment approval gate), then to `prod` (with a second approval gate).
 
-Workflows call `just` commands rather than inlining logic. This keeps CI as a thin orchestration layer and means the same commands work identically in local development and CI. GitHub environments (`preview-*`, `dev`, `stage`, `prod`) provide secret isolation and, for `stage` and `prod`, required reviewer approvals.
+Workflows call `mise run` tasks rather than inlining logic. This keeps CI as a thin orchestration layer and means the same commands work identically in local development and CI. GitHub environments (`preview-*`, `dev`, `stage`, `prod`) provide secret isolation and, for `stage` and `prod`, required reviewer approvals.
 
-### Task Runner (just)
+### Task Runner (mise)
 
-The `justfile` is the single interface for all project operations. Key recipes:
+`.mise-tasks/` is the single interface for all project operations. Key tasks:
 
-- `just test` / `just build` — Quality gates; `publish` depends on both
-- `just tf-init/plan/apply/destroy [WORKSPACE]` — Terraform operations with confirmation guards
-- `just docker-build` / `just docker-push` — Image management (never run `docker` directly)
-- `just fetch-e2e-secrets` — Pulls test credentials from Secret Manager
-- `just test-e2e` — Fetches secrets if missing, injects GCP vars, runs Playwright
+- `mise run test` / `mise run build` — Quality gates; `publish` depends on both
+- `mise run tf-init/tf-plan/tf-apply/tf-destroy [WORKSPACE]` — Terraform operations with confirmation guards
+- `mise run docker-build` / `mise run docker-push` — Image management (never run `docker` directly)
+- `mise run fetch-e2e-secrets` — Pulls test credentials from Secret Manager
+- `mise run test-e2e` — Fetches secrets if missing, injects GCP vars, runs Playwright
 
-Recipe dependencies form a build chain that enforces quality gates automatically. `direnv` loads `.envrc` on entry to the project directory, so all `just` commands have consistent environment without extra flags.
+Task dependencies form a build chain that enforces quality gates automatically. `mise.toml [env]` provides all environment variables so all `mise run` tasks have consistent environment without extra flags.
 
 ---
 
@@ -98,7 +98,7 @@ All runtime secrets live in GCP Secret Manager in the **DevOps project**. The na
 {PROJECT}-e2e-secrets       # E2E test credentials (shared across workspaces)
 ```
 
-Each secret stores env-file format content — one `KEY=VALUE` per line. The app reads these at deploy time via Cloud Run environment injection. E2E secrets contain `E2E_P1_PASSWORD` and `E2E_P1_USER_ID` and are fetched locally by `just fetch-e2e-secrets`, which writes to `apps/web/.env.e2e.local`.
+Each secret stores env-file format content — one `KEY=VALUE` per line. The app reads these at deploy time via Cloud Run environment injection. E2E secrets contain `E2E_P1_PASSWORD` and `E2E_P1_USER_ID` and are fetched locally by `mise run fetch-e2e-secrets`, which writes to `apps/web/.env.e2e.local`.
 
 Required CI secret: `GCP_SA_KEY` — service account JSON key with the following roles:
 
@@ -131,7 +131,7 @@ Example: the uploads collection requires a composite index on `(userId ASC, file
 | `libs/storage` | Mixed        | `client.ts`, `resize.ts` — browser-safe; `operations.ts` — server-only |
 | `libs/ui`      | Browser-only | Svelte components; Tailwind must scan `libs/ui/src/**`                 |
 
-Always import by package name (`@nv-gcp-template/auth`), not by relative path, to make boundary violations obvious in code review.
+Always import by package name (`@mise-app-template/auth`), not by relative path, to make boundary violations obvious in code review.
 
 ### E2E Test Architecture
 
@@ -139,64 +139,61 @@ Playwright tests live in `apps/web/e2e/`. The global setup and teardown hooks ha
 
 **Global setup:**
 
-1. Runs `just fetch-e2e-secrets` if `apps/web/.env.e2e.local` is missing.
+1. Runs `mise run fetch-e2e-secrets` if `apps/web/.env.e2e.local` is missing.
 2. Executes a pre-run cleanup pass to remove leftover `[E2E]`-tagged data from previous runs.
 3. Performs a P1 (primary test user) login via the Kinde auth flow and saves browser auth state for reuse across tests.
 
 **Global teardown:**
 
-- Runs `scripts/teardown-e2e.ts`, which queries Firestore for all records tagged `[E2E]` and deletes them, keeping the test environment clean.
+- Runs `apps/web/scripts/teardown-e2e.ts`, which queries Firestore for all records tagged `[E2E]` and deletes them, keeping the test environment clean.
 
-`just test-e2e` orchestrates the full sequence: fetches secrets if missing, injects the workspace-specific `GCP_PROJECT_ID` and region, and invokes Playwright.
+`mise run test-e2e` orchestrates the full sequence: fetches secrets if missing, injects the workspace-specific `GCP_PROJECT_ID` and region, and invokes Playwright.
 
 ### Terraform Workspace Strategy
 
-`infer_terraform_workspace()` in `scripts/utils.sh` extracts the issue ID from a branch name and normalizes it to lowercase for GCP resource naming compliance:
+`infer_terraform_workspace()` in `.mise-tasks/utils.sh` extracts the issue ID from a branch name and normalizes it to lowercase for GCP resource naming compliance:
 
 - `feature/PROJ-12345-my-feature` → `proj-12345`
 - `bugfix/BUG-1-fix` → `bug-1`
 
 The resulting workspace name is used as both the Terraform workspace and the `environment` label on all GCP resources. This creates a direct, traceable link from branch → workspace → resources.
 
-### Component: scripts/
+### Component: .mise-tasks/
 
-- `setup.sh` — Installs dependencies using semantic flags: `--dev` adds docker, node, gcloud, shellcheck, shfmt, and claude; `--ci` adds node and gcloud for release automation; `--template` adds bats-core for template testing. Keeps CI installs minimal.
-- `scaffold.sh` — Initializes a new project from the template. Handles PascalCase/camelCase/kebab-case replacements, removes template-only files, and restores from backup on failure.
-- `upversion.sh` — Wraps semantic-release. Dry-run mode locally, CI mode in GitHub Actions.
-- `utils.sh` — Shared logging (`log_info`, `log_success`, `log_error`, `log_warn`), `confirm` for destructive operations, `infer_terraform_workspace`, and cross-platform `sed_inplace`.
+- `.mise-tasks/utils.sh` — Shared logging (`log_info`, `log_success`, `log_error`, `log_warn`), `confirm` for destructive operations, `infer_terraform_workspace`, and cross-platform `sed_inplace`. Sourced by all other tasks (`#MISE hide=true`).
+- `.mise-tasks/scaffold` — Initializes a new project from the template. Handles PascalCase/camelCase/kebab-case replacements, removes template-only files, and restores from backup on failure.
+- `.mise-tasks/upversion` — Wraps semantic-release. Dry-run mode locally, CI mode in GitHub Actions.
 
-All scripts use `set -euo pipefail`. Source `scripts/utils.sh` at the top of any new script.
+All tasks use `set -euo pipefail`. Source `.mise-tasks/utils.sh` at the top of any new task.
 
 ### Component: Dockerfile (Multi-Stage)
 
-- **`base` stage** — Used by docker-compose (`just docker-run`, `just docker-test`). Installs bash, just, direnv only. Fast build (~1–2 min), minimal image.
-- **`dev` stage** — Used by VS Code Dev Containers. Adds docker CLI, node/npx, gcloud, shellcheck, shfmt, claude, and bats-core. Slower build (~10 min), cached after first run.
+- **`base` stage** (`dockerfiles/base.dockerfile`) — Installs mise and all dev tools from `mise.toml [tools]` (node, pnpm, terraform, etc.). Runs `mise run install` to install pnpm dependencies. Used as the foundation for the web app build.
+- **`runtime` stage** (`dockerfiles/web.dockerfile`) — Copies only the SvelteKit build output from the builder stage into a minimal `node:20-alpine` runtime image. No mise, no dev tools.
 
-Both stages share base layers, maximizing Docker layer cache efficiency. `docker-compose.yml` specifies `target: base`; `.devcontainer/devcontainer.json` specifies `target: dev`.
+Docker layer caching is maximized by separating `mise install` (tool install) from `mise run install` (pnpm install) from `mise run build-prod` (app build).
 
 ### Cross-Platform Support
 
 The template targets macOS, Linux, and Windows (via WSL or Docker Desktop):
 
 - `.editorconfig` enforces LF line endings to prevent git diff noise on Windows.
-- `sed_inplace` in `utils.sh` abstracts the BSD/GNU `sed -i` difference.
+- `sed_inplace` in `.mise-tasks/utils.sh` abstracts the BSD/GNU `sed -i` difference.
 - Bash 3.2+ is required — macOS ships with Bash 3.2, so Bash 4+ features are avoided.
-- `setup.sh` detects the available package manager (Homebrew, apt, yum, pacman) and falls back to curl.
-- `.devcontainer` credential paths use `${localEnv:HOME}${localEnv:USERPROFILE}` for platform-portable mounting.
+- mise handles tool installation across platforms via its own plugin system.
 
 ### Security
 
-- Secrets belong in GitHub Secrets and GCP Secret Manager — never in `.envrc` or committed files.
+- Secrets belong in GitHub Secrets and GCP Secret Manager — never in `mise.toml` or committed files.
 - `.gitignore` includes patterns for keys, certificates, credentials, and `.env` files.
-- `confirm` utility in `utils.sh` gates all destructive operations (destroy, publish, scaffold).
-- `set -euo pipefail` in all scripts ensures errors fail fast rather than propagating silently.
+- `confirm` utility in `.mise-tasks/utils.sh` gates all destructive operations (destroy, publish, scaffold).
+- `set -euo pipefail` in all task scripts ensures errors fail fast rather than propagating silently.
 
 ---
 
 ## References
 
-- [just command runner](https://github.com/casey/just)
-- [direnv environment management](https://direnv.net/)
+- [mise task runner and tool manager](https://mise.jdx.dev/)
 - [Kinde authentication](https://kinde.com/docs/)
 - [semantic-release](https://semantic-release.gitbook.io/)
 - [bats-core bash testing](https://bats-core.readthedocs.io/)

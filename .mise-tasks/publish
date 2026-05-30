@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#MISE description="Publish the project"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+# Construct package version
+PUBLISH_VERSION="${1:-}"
+if [ -n "${PUBLISH_VERSION}" ]; then
+    # Pre-release: use next version with RC tag and commit hash (e.g., 1.2.4-rc.nv-29.abc1234)
+    NEXT_VERSION=$(get_next_version)
+    if [ -z "${NEXT_VERSION}" ]; then
+        log_error "Could not determine next version"
+        exit 1
+    fi
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    PUBLISH_VERSION="${NEXT_VERSION}-rc.${PUBLISH_VERSION}.${COMMIT_HASH}"
+    log_info "Publishing pre-release package: ${PROJECT}@${PUBLISH_VERSION}"
+else
+    # Release: use version from version.txt
+    PUBLISH_VERSION="${VERSION}"
+    log_info "Publishing release package: ${PROJECT}@${PUBLISH_VERSION}"
+fi
+
+gcloud artifacts generic upload \
+    --project="${GCP_DEVOPS_PROJECT_ID}" \
+    --location="${GCP_DEVOPS_PROJECT_REGION}" \
+    --repository="${GCP_DEVOPS_REGISTRY_NAME}" \
+    --package="${PROJECT}" \
+    --version="${PUBLISH_VERSION}" \
+    --source=dist/artifact.txt
+
+log_success "Published: ${PROJECT}@${PUBLISH_VERSION}"

@@ -35,18 +35,18 @@ jobs:
           gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
       - name: Create Terraform backend bucket
-        run: just tf-create-backend
+        run: mise run tf-create-backend
 
       - name: Install dependencies
-        run: just install
+        run: mise run install
 
       - name: Run tests
-        run: just test
+        run: mise run test
         env:
           SKIP_TF_TESTS: "1"
 
       - name: Build production artifacts
-        run: just build-prod
+        run: mise run build-prod
 
       - name: Get current version
         id: version_before
@@ -62,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
-        run: just upversion --ci
+        run: mise run upversion --ci
 
       - name: Capture release outputs
         id: upversion
@@ -80,7 +80,7 @@ jobs:
         if: steps.upversion.outputs.new_release_published == 'true' && env.GCP_SA_KEY != ''
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: just publish
+        run: mise run publish
 
   deploy:
     runs-on: ubuntu-latest
@@ -106,9 +106,9 @@ jobs:
 
       - name: Build and Push Web App Docker Image
         run: |
-          just docker-build web
-          just docker-login
-          just docker-push web
+          mise run docker-build web
+          mise run docker-login
+          mise run docker-push web
 
       - name: Get Docker Image Name
         id: docker_image
@@ -121,14 +121,14 @@ jobs:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
           TF_VAR_app_image: ${{ steps.docker_image.outputs.image }}
         run: |
-          just tf-plan dev
-          just tf-apply dev --auto-approve
-          just deploy dev
+          mise run tf-plan dev
+          mise run tf-apply dev --auto-approve
+          mise run deploy dev
 
       - name: Get Service URL
         id: outputs
         run: |
-          SERVICE_URL=$(just get-url dev)
+          SERVICE_URL=$(mise run get-url dev)
           echo "service_url=${SERVICE_URL}" >> $GITHUB_OUTPUT
 
       - name: Create Deployment

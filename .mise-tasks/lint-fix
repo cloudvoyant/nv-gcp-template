@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Lint and auto-fix issues"
+set -euo pipefail
+PATHS="${*:-.}"
+pnpm prettier --write ${PATHS}

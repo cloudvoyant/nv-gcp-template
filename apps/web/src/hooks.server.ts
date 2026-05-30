@@ -8,8 +8,8 @@ import {
   serializeSession,
   getSessionCookieOptions,
   validateOrRefreshSession,
-} from "@nv-gcp-template/auth";
-import { initStorageConfig } from "@nv-gcp-template/storage";
+} from "@mise-app-template/auth";
+import { initStorageConfig } from "@mise-app-template/storage";
 
 const KINDE_DOMAIN = env.VITE_KINDE_DOMAIN;
 const KINDE_CLIENT_ID = env.VITE_KINDE_CLIENT_ID;

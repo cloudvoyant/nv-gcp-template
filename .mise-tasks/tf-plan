@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Run Terraform plan"
+set -euo pipefail
+source "$(dirname "$0")/utils.sh"
+
+WORKSPACE_NAME="${1:-}"
+WORKSPACE_NAME="${WORKSPACE_NAME:-$(infer_terraform_workspace)}"
+
+# Run tf-init first
+mise run tf-init "${WORKSPACE_NAME}"
+
+# Use TF_VAR_app_image if set by CI, otherwise construct from registry + workspace tag
+if [ -n "${TF_VAR_app_image:-}" ]; then
+    APP_IMAGE="${TF_VAR_app_image}"
+else
+    if [[ "${WORKSPACE_NAME}" == "dev" || "${WORKSPACE_NAME}" == "stage" || "${WORKSPACE_NAME}" == "prod" ]]; then
+        IMAGE_TAG="${VERSION}"
+    else
+        IMAGE_TAG="${WORKSPACE_NAME}"
+    fi
+    APP_IMAGE="${GCP_DEVOPS_PROJECT_REGION}-docker.pkg.dev/${GCP_DEVOPS_PROJECT_ID}/${GCP_DEVOPS_DOCKER_REGISTRY_NAME}/${PROJECT}-web:${IMAGE_TAG}"
+fi
+log_info "App image: ${APP_IMAGE}"
+
+cd infra/environments
+terraform plan \
+    -var="project=${PROJECT}" \
+    -var="gcp_project_id=${GCP_PROJECT_ID}" \
+    -var="gcp_region=${GCP_REGION}" \
+    -var="environment_name=${WORKSPACE_NAME}" \
+    -var="gcp_devops_project_id=${GCP_DEVOPS_PROJECT_ID}" \
+    -var="gcp_devops_docker_registry_name=${GCP_DEVOPS_DOCKER_REGISTRY_NAME}" \
+    -var="gcp_devops_project_region=${GCP_DEVOPS_PROJECT_REGION}" \
+    -var="app_image=${APP_IMAGE}" \
+    -out=tfplan
