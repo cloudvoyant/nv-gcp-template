@@ -1,3 +1,59 @@
+## [1.4.0](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.3.2...v1.4.0) (2026-05-30)
+
+### ⚠ BREAKING CHANGES
+
+* mise run tf-destroy now exits with an error when run on dev,
+stage, or prod workspaces. Run terraform destroy manually for persistent environments.
+
+### Features
+
+* migrate from just/direnv to mise for task running and env config
+
+Replace justfile + direnv + scripts/setup.sh with mise as the single tool
+for task running, environment configuration, and dev-tool dependency management.
+
+- Add mise.toml with [env] (PROJECT=mise-app-template, VERSION, GCP vars),
+  [tools] (node 20, pnpm, terraform, bats, shellcheck, shfmt), and
+  [settings] (experimental=true for .mise-tasks/ auto-discovery)
+- Add .mise-tasks/ with 46 tasks replacing all justfile recipes
+- Rewrite dockerfiles/base.dockerfile and web.dockerfile for mise-based 2-stage build
+- Remove .devcontainer/, dev.dockerfile, root Dockerfile
+- Update all 4 CI workflows and 2 composite actions to use mise
+- Rename test/ → template-tests/; update scaffold task accordingly
+- Delete justfile, scripts/setup.sh, scripts/toggle-files.sh,
+  scripts/upversion.sh, scripts/scaffold.sh, scripts/utils.sh
+- Remove .envrc and .envrc.template (replaced by mise.toml [env])
+- Update all nv-gcp-template references to mise-app-template
+- Apply prettier formatting to e2e fixtures and CHANGELOG.md
+
+* protect persistent envs, add CI test suite, Firestore by workspace type
+
+- Block tf-destroy on dev/stage/prod to prevent accidental data loss
+- Add is_ci local (ci-* workspaces) to skip Firestore and avoid HTTP/2 timeouts
+- Real preview workspaces get Firestore with deletion_policy=DELETE so no orphans
+- Reorganise tests/: template tests in tests/template/, CI flow tests in tests/ci/
+- Add breaking->minor release rule so 0.x projects stay at 0.x through breaking changes
+- Fix stale docs: gcloud auth commands, scaffold path, just->mise task references
+- Update scaffold to reference tests/ instead of template-tests/
+
+BREAKING CHANGE: mise run tf-destroy now exits with an error when run on dev,
+stage, or prod workspaces. Run terraform destroy manually for persistent environments.
+
+
+### Bug Fixes
+
+* **ci:** add semantic-release plugins to package.json and use pnpm exec
+
+* **ci:** allow protobufjs build scripts in pnpm workspace
+
+* **ci:** correct mise-action repo from jdx-code to jdx
+
+* **ci:** pin pnpm to v10 to match local and avoid v11 build-approval changes
+
+* **test:** resolve mise path portably for CI compatibility
+
+* update template-export tests for mise migration (remove justfile/envrc refs)
+
 ## [1.3.2](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.3.1...v1.3.2) (2026-04-12)
 
 ### Bug Fixes
