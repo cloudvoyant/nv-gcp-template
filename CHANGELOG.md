@@ -1,3 +1,14 @@
+## [1.4.5](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.4...v1.4.5) (2026-05-30)
+
+### Bug Fixes
+
+* **docker:** use adapter-generated build/package.json instead of pnpm deploy
+
+SvelteKit adapter-node generates build/package.json with only real npm deps.
+Workspace libs (@mise-app-template/auth, storage, ui) are TypeScript-only and
+bundled by Vite at build time — they are not needed at runtime. This avoids
+the need for pnpm deploy and the workspace:* protocol issues it brings.
+
 ## [1.4.4](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.3...v1.4.4) (2026-05-30)
 
 ### Bug Fixes
