@@ -1,3 +1,20 @@
+## [1.4.11](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.10...v1.4.11) (2026-06-28)
+
+### Bug Fixes
+
+* **tests:** use dev image for tf-apply integration tests
+
+tf-apply looks for a workspace-tagged image which never exists for test
+workspaces. Default TF_VAR_app_image to the dev image (always present
+after a release) so tests can run locally without pre-building an image.
+
+* **tests:** use gcr.io/cloudrun/hello for tf integration tests
+
+Ephemeral test workspaces have no workspace-tagged image and the :dev
+image may not exist yet. Use Google's minimal Cloud Run hello image,
+which is always available, to decouple infra provisioning tests from
+the Docker build pipeline.
+
 ## [1.4.10](https://github.com/cloudvoyant/nv-gcp-template/compare/v1.4.9...v1.4.10) (2026-05-30)
 
 ### Code Refactoring
